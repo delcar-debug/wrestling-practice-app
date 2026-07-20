@@ -273,7 +273,7 @@
   }
   function renderArchive(){
     const archived=read(ARCHIVE_KEY);
-    document.querySelectorAll('.practice-inbox-panel').forEach(panel=>{
+    document.querySelectorAll('.practice-inbox-panel:not(.coach-inbox-panel)').forEach(panel=>{
       archiveShell(panel);
       const count=panel.querySelector('.practice-inbox-archive-count');
       const list=panel.querySelector('.practice-inbox-archive-list');
@@ -303,7 +303,7 @@
     const del=e.target.closest('[data-inbox-delete-archived]');if(del){if(confirm('Delete this archived inbox item?'))deleteArchived(del.dataset.inboxDeleteArchived);return;}
   },true);
 
-  const startArchive=()=>{document.querySelectorAll('.practice-inbox-panel').forEach(archiveShell);renderArchive()};
+  const startArchive=()=>{document.querySelectorAll('.practice-inbox-panel:not(.coach-inbox-panel)').forEach(archiveShell);renderArchive()};
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',startArchive);else startArchive();
   window.addEventListener('storage',e=>{if(e.key===ARCHIVE_KEY||e.key===ACTIVE_KEY)renderArchive()});
 
