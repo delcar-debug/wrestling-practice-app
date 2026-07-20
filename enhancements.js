@@ -86,7 +86,7 @@
     ['builderPage','libraryPage','teamBoardPage','practiceDataPage','practiceQueuePage','drillLibraryPage'].forEach(id=>q(id)?.classList.remove('active'));
     q('builderPage')?.classList.add('hidden-page');q('whiteboardPage')?.classList.add('active');document.querySelectorAll('.page-nav button').forEach(x=>x.classList.toggle('active',x.id==='navWhiteboard'));window.scrollTo(0,0);
   }
-  const originalShow=showAppPage; showAppPage=function(page){q('whiteboardPage')?.classList.remove('active'); if(page==='whiteboard')return showWhiteboard(); return originalShow(page)};
+  const originalShow=showAppPage; showAppPage=function(page){q('whiteboardPage')?.classList.remove('active');q('builderPage')?.classList.remove('hidden-page');document.body.classList.remove('whiteboard-tv');if(page==='whiteboard')return showWhiteboard();return originalShow(page)};
   const originalData=renderPracticeData; renderPracticeData=function(){originalData();renderAdvancedAnalytics()};
   const originalDrills=renderDrillLibrary; renderDrillLibrary=function(){originalDrills();enhanceDrillCards()};
   installAnalyticsUI();installDropZone();installWhiteboard();renderAdvancedAnalytics();enhanceDrillCards();
