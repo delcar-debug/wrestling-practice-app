@@ -201,3 +201,18 @@ body.detached-tv .team-board-item.current .team-board-details,
 #fullPracticeInbox .practice-inbox-archive{margin-top:18px;padding-top:14px}
 #fullPracticeInbox .practice-inbox-archive[open] .practice-inbox-archive-list{display:grid}
 #practiceQueuePage .simple-queue-panel[hidden]{display:none!important}
+
+
+/* Share Practice — live-link sharing */
+.share-actions{gap:8px}
+.share-practice-btn{font-size:1.02rem;padding:12px 16px;box-shadow:0 8px 20px rgba(0,0,0,.12)}
+.practice-share-modal{max-width:560px}
+.share-practice-help{margin:0 0 14px;color:var(--muted,#667085)}
+.share-link-label{display:block;font-weight:700;margin-bottom:6px}
+#sharePracticeLink{width:100%;box-sizing:border-box;border:1px solid var(--line,#d7dce2);border-radius:10px;padding:10px;background:#f8fafc;color:#273142}
+.practice-share-grid{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-top:12px}
+.shared-practice-view .page-nav,.shared-practice-view #teamBoardBackBtn,.shared-practice-view #teamBoardTvBtn{display:none!important}
+.shared-practice-view .team-board-page{display:block!important}
+.shared-practice-view .team-board-shell{max-width:none}
+.shared-practice-view .header{display:none!important}
+@media(max-width:520px){.practice-share-grid{grid-template-columns:1fr}}

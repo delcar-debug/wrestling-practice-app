@@ -582,3 +582,115 @@ function finishArchiveWithReflection(){if(!pendingArchiveSnapshot)return;const r
 const originalShowAppPage=showAppPage;showAppPage=function(page){const special=page==='queue'||page==='drills';if(special){$('builderPage').classList.add('hidden-page');$('libraryPage').classList.remove('active');$('teamBoardPage').classList.remove('active');$('practiceDataPage')?.classList.remove('active');$('practiceQueuePage').classList.toggle('active',page==='queue');$('drillLibraryPage').classList.toggle('active',page==='drills');['navBuilder','navCoach','navTeam','navLibrary','navData','navQueue','navDrills'].forEach(id=>$(id)?.classList.remove('active'));$(page==='queue'?'navQueue':'navDrills').classList.add('active');if(page==='queue')renderQueue();else renderDrillLibrary();window.scrollTo({top:0,behavior:'smooth'});return}$('practiceQueuePage')?.classList.remove('active');$('drillLibraryPage')?.classList.remove('active');$('navQueue')?.classList.remove('active');$('navDrills')?.classList.remove('active');$('navData')?.classList.remove('active');originalShowAppPage(page)};
 $('dataTabDate').onclick=()=>setDataView('date');$('dataTabActive').onclick=()=>setDataView('active');$('dataArchiveSelect').onchange=renderDatePracticeData;$('dataRefreshBtn').onclick=renderPracticeData;loadCoachKnowledge();$('navQueue').onclick=()=>showAppPage('queue');$('navDrills').onclick=()=>showAppPage('drills');$('addMeetNoteBtn').onclick=addMeetNote;$('queueSearch').oninput=renderQueue;$('drillSearch').oninput=renderDrillLibrary;$('saveNewDrillBtn').onclick=saveNewDrill;el.blockSource.onchange=()=>{updateBlockSourceUI();if(el.blockSource.value==='library'&&el.drillPicker.value)applySelectedDrill()};el.drillPicker.onchange=applySelectedDrill;$('cancelReflectionBtn').onclick=closeReflection;$('confirmArchiveBtn').onclick=finishArchiveWithReflection;
 
+
+
+
+/* ===== Share Practice link controller ===== */
+(function installPracticeLinkSharing(){
+  const byId=id=>document.getElementById(id);
+  const utf8ToB64Url=value=>{
+    const bytes=new TextEncoder().encode(value);
+    let binary='';
+    bytes.forEach(byte=>binary+=String.fromCharCode(byte));
+    return btoa(binary).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
+  };
+  const b64UrlToUtf8=value=>{
+    let normalized=value.replace(/-/g,'+').replace(/_/g,'/');
+    normalized+='='.repeat((4-normalized.length%4)%4);
+    const binary=atob(normalized);
+    const bytes=Uint8Array.from(binary,ch=>ch.charCodeAt(0));
+    return new TextDecoder().decode(bytes);
+  };
+  const teamName=()=>document.querySelector('.brand h1')?.textContent?.trim()||document.querySelector('.team-board-title h2')?.textContent?.trim()||document.title.split(' Practice')[0];
+  const slogan=()=>document.querySelector('.brand p')?.textContent?.trim()||document.querySelector('.team-board-title p')?.textContent?.trim()||'';
+  const practicePayload=()=>({
+    version:1,
+    team:teamName(),
+    slogan:slogan(),
+    date:el.practiceDate?.value||'',
+    start:el.startTime?.value||'15:30',
+    length:Number(el.practiceLength?.value)||total(),
+    goal:el.practiceGoal?.value||'',
+    blocks:(state.blocks||[]).map(({name,minutes,details,category})=>({name,minutes:Number(minutes)||0,details:details||'',category:category||'other'}))
+  });
+  const makeShareUrl=()=>{
+    const url=new URL(location.href);
+    url.search='';
+    url.hash='practice='+utf8ToB64Url(JSON.stringify(practicePayload()));
+    return url.toString();
+  };
+  const shareMessage=url=>{
+    const dateText=el.practiceDate?.value?new Date(el.practiceDate.value+'T12:00:00').toLocaleDateString(undefined,{weekday:'long',month:'long',day:'numeric'}):'the upcoming practice';
+    return `${teamName()} practice plan for ${dateText}:\n${url}`;
+  };
+  const openShare=()=>{
+    if(!(state.blocks||[]).length)return alert('Add at least one practice block before sharing.');
+    const backdrop=byId('sharePracticeBackdrop');
+    const link=makeShareUrl();
+    byId('sharePracticeLink').value=link;
+    byId('practiceShareStatus').textContent='';
+    backdrop.classList.add('open');
+    backdrop.setAttribute('aria-hidden','false');
+  };
+  const closeShare=()=>{
+    const backdrop=byId('sharePracticeBackdrop');
+    backdrop.classList.remove('open');
+    backdrop.setAttribute('aria-hidden','true');
+  };
+  const markShared=()=>{
+    try{setPdfStatus({sentAt:new Date().toISOString()});upsertAutoArchive({silent:true})}catch{}
+  };
+  const copyLink=async()=>{
+    const link=byId('sharePracticeLink').value;
+    try{await navigator.clipboard.writeText(link);byId('practiceShareStatus').textContent='Link copied.';markShared()}
+    catch{byId('sharePracticeLink').select();document.execCommand('copy');byId('practiceShareStatus').textContent='Link copied.';markShared()}
+  };
+  const nativeShare=async()=>{
+    const url=byId('sharePracticeLink').value;
+    if(!navigator.share)return copyLink();
+    try{await navigator.share({title:`${teamName()} Practice`,text:'The practice plan is ready.',url});byId('practiceShareStatus').textContent='Practice shared.';markShared();closeShare()}catch(err){if(err?.name!=='AbortError')byId('practiceShareStatus').textContent='Sharing was not completed.'}
+  };
+  const emailLink=()=>{
+    const url=byId('sharePracticeLink').value;
+    const recipients=(state.coachEmails||[]).join(',');
+    const subject=`${teamName()} Practice Plan`;
+    location.href=`mailto:${encodeURIComponent(recipients)}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(shareMessage(url))}`;
+    markShared();
+  };
+  const textLink=()=>{
+    const url=byId('sharePracticeLink').value;
+    const separator=/iPhone|iPad|iPod/i.test(navigator.userAgent)?'&':'?';
+    location.href=`sms:${separator}body=${encodeURIComponent(shareMessage(url))}`;
+    markShared();
+  };
+  const openSharedPractice=()=>{
+    if(!location.hash.startsWith('#practice='))return false;
+    try{
+      const payload=JSON.parse(b64UrlToUtf8(location.hash.slice('#practice='.length)));
+      state.blocks=Array.isArray(payload.blocks)?payload.blocks.map(block=>({id:crypto.randomUUID(),name:block.name||'Practice Block',minutes:Number(block.minutes)||0,details:block.details||'',category:block.category||'other',coachNotes:''})):[];
+      if(el.practiceDate)el.practiceDate.value=payload.date||'';
+      if(el.startTime)el.startTime.value=payload.start||'15:30';
+      if(el.practiceLength)el.practiceLength.value=payload.length||state.blocks.reduce((sum,b)=>sum+b.minutes,0);
+      if(el.practiceGoal)el.practiceGoal.value=payload.goal||'';
+      const title=byId('teamBoardPage')?.querySelector('.team-board-title h2');
+      if(title&&payload.team)title.textContent=payload.team;
+      const sloganNode=byId('teamBoardPage')?.querySelector('.team-board-title p');
+      if(sloganNode)sloganNode.textContent=payload.slogan||'';
+      document.body.classList.add('shared-practice-view');
+      showAppPage('team');
+      renderTeamBoard();
+      document.title=`${payload.team||'Practice'} — Practice Plan`;
+      return true;
+    }catch(err){console.error('Could not open shared practice',err);alert('This practice link is damaged or incomplete.');return false}
+  };
+  const main=byId('sharePracticeBtn'); if(main)main.onclick=openShare;
+  const coach=byId('coachPdfSendBtn'); if(coach){coach.textContent='Share Practice';coach.onclick=openShare}
+  const pdf=byId('downloadPdfBtn'); if(pdf)pdf.onclick=sharePracticePdf;
+  byId('nativeSharePracticeBtn')?.addEventListener('click',nativeShare);
+  byId('copyPracticeLinkBtn')?.addEventListener('click',copyLink);
+  byId('emailPracticeLinkBtn')?.addEventListener('click',emailLink);
+  byId('textPracticeLinkBtn')?.addEventListener('click',textLink);
+  byId('closePracticeShareBtn')?.addEventListener('click',closeShare);
+  byId('sharePracticeBackdrop')?.addEventListener('click',event=>{if(event.target===byId('sharePracticeBackdrop'))closeShare()});
+  openSharedPractice();
+})();
