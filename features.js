@@ -239,10 +239,14 @@
    const bh=document.querySelector('#builderPage .builder-section-head');if(bh&&!document.getElementById('builderPracticeInbox'))bh.parentNode.insertBefore(panel('builderPracticeInbox'),bh);
    const timer=document.querySelector('#timerPanel .compact-timer-section');if(timer&&!document.getElementById('coachPracticeInbox'))timer.insertAdjacentElement('afterend',panel('coachPracticeInbox',true));
    const nav=document.getElementById('navQueue');if(nav)nav.textContent='Practice Inbox';
-   const qp=document.getElementById('practiceQueuePage');if(qp){const h=qp.querySelector('h2');if(h)h.textContent='Practice Inbox';const b=document.getElementById('addMeetNoteBtn');if(b)b.textContent='Add to Practice Inbox'}
+   const qp=document.getElementById('practiceQueuePage');if(qp){
+     const legacy=qp.querySelector('.simple-queue-panel');
+     if(legacy)legacy.hidden=true;
+     if(!document.getElementById('fullPracticeInbox'))qp.appendChild(panel('fullPracticeInbox'));
+   }
  }
  function itemHtml(q){return `<article class="practice-inbox-item"><div class="practice-inbox-title">${esc(q.title||'Untitled item')}</div><div class="practice-inbox-meta">Added by ${esc(q.addedBy||q.athlete||'Coach')}</div><div class="practice-inbox-actions"><button class="primary" data-inbox-block="${esc(q.id)}" type="button">Add to practice</button><button class="secondary" data-inbox-drill="${esc(q.id)}" type="button">Save drill</button><button class="danger" data-inbox-done="${esc(q.id)}" type="button">Done</button></div></article>`}
- function render(){ensure();const q=readQ();document.querySelectorAll('.practice-inbox-panel').forEach(sec=>{sec.querySelector('.practice-inbox-count').textContent=`${q.length} item${q.length===1?'':'s'}`;const list=sec.querySelector('.practice-inbox-list');const shown=sec.id==='coachPracticeInbox'?q.slice(0,4):q.slice(0,6);list.innerHTML=shown.length?shown.map(itemHtml).join(''):'<div class="practice-inbox-empty">No items in the inbox.</div>'})}
+ function render(){ensure();const q=readQ();document.querySelectorAll('.practice-inbox-panel').forEach(sec=>{sec.querySelector('.practice-inbox-count').textContent=`${q.length} item${q.length===1?'':'s'}`;const list=sec.querySelector('.practice-inbox-list');const shown=sec.id==='coachPracticeInbox'?q.slice(0,4):(sec.id==='builderPracticeInbox'?q.slice(0,6):q);list.innerHTML=shown.length?shown.map(itemHtml).join(''):'<div class="practice-inbox-empty">No items in the inbox.</div>'})}
  function add(sec){const work=sec.querySelector('.inbox-work'),by=sec.querySelector('.inbox-by');const title=work.value.trim(),addedBy=by.value.trim();if(!title||!addedBy){alert('Enter both what to work on and who added it.');return}const q=readQ();q.unshift({id:crypto.randomUUID?.()||String(Date.now()),title,addedBy,source:'coach',details:'',createdAt:new Date().toISOString()});writeQ(q);work.value='';work.focus()}
  document.addEventListener('click',e=>{const sec=e.target.closest('.practice-inbox-panel');if(e.target.closest('.inbox-add')&&sec){add(sec);return}const done=e.target.closest('[data-inbox-done]');if(done){writeQ(readQ().filter(q=>String(q.id)!==done.dataset.inboxDone));return}const block=e.target.closest('[data-inbox-block]');if(block){try{addQueueToPractice(block.dataset.inboxBlock)}catch(err){console.error(err)}return}const drill=e.target.closest('[data-inbox-drill]');if(drill){try{saveQueueAsDrill(drill.dataset.inboxDrill)}catch(err){console.error(err)}return}if(e.target.closest('.inbox-open-full')){document.getElementById('navQueue')?.click()}});
  document.addEventListener('keydown',e=>{if(e.key==='Enter'&&e.target.matches('.inbox-work,.inbox-by')){e.preventDefault();const sec=e.target.closest('.practice-inbox-panel');if(sec)add(sec)}});
@@ -264,6 +268,7 @@
     if(panel.querySelector('.practice-inbox-archive'))return;
     const d=document.createElement('details');
     d.className='practice-inbox-archive';
+    if(panel.id==='fullPracticeInbox')d.open=true;
     d.innerHTML='<summary><span>Completed Inbox Items</span><span class="practice-inbox-archive-count"></span></summary><div class="practice-inbox-archive-list"></div>';
     panel.appendChild(d);
   }

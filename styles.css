@@ -196,3 +196,8 @@ body.detached-tv .team-board-item.current .team-board-details,
   gap: 8px;
 }
 .interval-buttons-v4 button { width: 100%; }
+#fullPracticeInbox{max-width:1050px;margin:0 auto 24px;padding:18px}
+#fullPracticeInbox .inbox-open-full{display:none!important}
+#fullPracticeInbox .practice-inbox-archive{margin-top:18px;padding-top:14px}
+#fullPracticeInbox .practice-inbox-archive[open] .practice-inbox-archive-list{display:grid}
+#practiceQueuePage .simple-queue-panel[hidden]{display:none!important}
