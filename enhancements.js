@@ -107,3 +107,142 @@
   }, true);
   window.addEventListener('hashchange', hideWhiteboard);
 })();
+
+/* ===== Home dashboard and visual practice timeline ===== */
+(() => {
+  const byId = id => document.getElementById(id);
+  const safeText = value => String(value ?? '').replace(/[&<>"']/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
+  const archiveList = () => {
+    try {
+      const saved = JSON.parse(localStorage.getItem('wpp-practice-library') || '[]');
+      return Array.isArray(saved) ? saved : [];
+    } catch { return []; }
+  };
+  const inboxList = () => {
+    try {
+      const saved = JSON.parse(localStorage.getItem('wpp-coach-knowledge') || '{}');
+      return Array.isArray(saved.practiceQueue) ? saved.practiceQueue : (typeof practiceQueue !== 'undefined' ? practiceQueue : []);
+    } catch { return typeof practiceQueue !== 'undefined' ? practiceQueue : []; }
+  };
+  const archiveMinutes = a => (a.blocks || []).reduce((sum,b) => sum + Math.max(0, Number(b.minutes) || 0), 0);
+
+  function installHome(){
+    const nav = document.querySelector('.page-nav');
+    if (!nav || byId('navHome')) return;
+    const homeButton = document.createElement('button');
+    homeButton.id = 'navHome';
+    homeButton.type = 'button';
+    homeButton.textContent = 'Home';
+    nav.prepend(homeButton);
+
+    const page = document.createElement('section');
+    page.id = 'homePage';
+    page.className = 'home-page page-view';
+    page.innerHTML = `
+      <div class="home-hero">
+        <section class="home-identity">
+          <div class="home-eyebrow">Championship Standard</div>
+          <h1>Holmen Women's Wrestling</h1>
+          <div class="home-slogans"><span>For Her</span><span>Team State Champs</span></div>
+        </section>
+        <section class="home-today">
+          <div><div class="home-today-label">Active Practice</div><div class="home-today-date" id="homePracticeDate">No date selected</div><div class="home-today-goal" id="homePracticeGoal">Set a goal in Practice Builder.</div></div>
+          <button class="primary" id="homeContinueBtn" type="button">Continue Practice</button>
+        </section>
+      </div>
+      <div class="home-grid">
+        <div class="home-metric"><span>Season Practices</span><strong id="homePracticeCount">0</strong></div>
+        <div class="home-metric"><span>Season Hours</span><strong id="homeSeasonHours">0</strong></div>
+        <div class="home-metric"><span>Planned Today</span><strong id="homeTodayMinutes">0m</strong></div>
+        <div class="home-metric"><span>Practice Inbox</span><strong id="homeInboxCount">0</strong></div>
+      </div>
+      <div class="home-panels">
+        <section class="home-panel"><h2>Quick Actions</h2><div class="home-quick-actions">
+          <button class="primary" data-home-action="builder" type="button">Build Practice</button>
+          <button class="secondary" data-home-action="coach" type="button">Open Coach Mode</button>
+          <button class="secondary" data-home-action="team" type="button">Open Team Board</button>
+          <button class="secondary" data-home-action="whiteboard" type="button">Open Whiteboard</button>
+          <button class="secondary" data-home-action="queue" type="button">Practice Inbox</button>
+          <button class="secondary" data-home-action="data" type="button">Season Data</button>
+        </div></section>
+        <section class="home-panel"><h2>Recent Practices</h2><div id="homeRecentPractices"></div></section>
+      </div>`;
+    document.querySelector('.app')?.appendChild(page);
+    homeButton.addEventListener('click', () => showAppPage('home'));
+    byId('homeContinueBtn').addEventListener('click', () => showAppPage(state.practiceActive ? 'coach' : 'builder'));
+    page.querySelectorAll('[data-home-action]').forEach(btn => btn.addEventListener('click', () => showAppPage(btn.dataset.homeAction)));
+  }
+
+  function renderHome(){
+    const page = byId('homePage'); if (!page) return;
+    const archives = archiveList().sort((a,b) => new Date(b.date || b.archivedAt || 0) - new Date(a.date || a.archivedAt || 0));
+    const mins = archives.reduce((sum,a) => sum + archiveMinutes(a), 0);
+    const inbox = inboxList().filter(item => !item.completedAt && !item.addressedAt);
+    const dateValue = byId('practiceDate')?.value;
+    byId('homePracticeDate').textContent = dateValue ? new Date(dateValue + 'T12:00:00').toLocaleDateString(undefined,{weekday:'long',month:'long',day:'numeric'}) : 'No date selected';
+    byId('homePracticeGoal').textContent = byId('practiceGoal')?.value?.trim() || 'Set a goal in Practice Builder.';
+    byId('homePracticeCount').textContent = archives.length;
+    byId('homeSeasonHours').textContent = (mins / 60).toFixed(mins >= 600 ? 0 : 1);
+    byId('homeTodayMinutes').textContent = `${typeof total === 'function' ? total() : 0}m`;
+    byId('homeInboxCount').textContent = inbox.length;
+    byId('homeRecentPractices').innerHTML = archives.length ? archives.slice(0,5).map(a => `<div class="home-recent-row"><div><strong>${safeText(a.goal || 'Practice')}</strong><br><span>${safeText(a.date || 'No date')}</span></div><strong>${archiveMinutes(a)}m</strong></div>`).join('') : '<div class="home-empty">Archived practices will appear here.</div>';
+  }
+
+  function installTimeline(){
+    const builder = byId('builderPage');
+    if (!builder || byId('practiceTimelineCard')) return;
+    const card = document.createElement('section');
+    card.id = 'practiceTimelineCard';
+    card.className = 'card practice-timeline-card';
+    card.innerHTML = `<div class="timeline-heading"><div><h2>Practice Timeline</h2><p>Drag blocks to reorder. Use − / + to make quick time changes.</p></div><div class="timeline-range" id="timelineRange"></div></div><div class="practice-timeline" id="practiceTimeline"></div><div class="timeline-now-line"></div>`;
+    builder.prepend(card);
+  }
+
+  function renderTimeline(){
+    const timeline = byId('practiceTimeline'); if (!timeline) return;
+    const start = typeof startMins === 'function' ? startMins() : 0;
+    const planned = typeof total === 'function' ? total() : 0;
+    byId('timelineRange').textContent = `${typeof clock === 'function' ? clock(start) : ''} – ${typeof clock === 'function' ? clock(start + planned) : ''}`;
+    if (!state.blocks.length){timeline.innerHTML='<div class="timeline-empty">Add practice blocks to build the timeline.</div>';return;}
+    let elapsed = 0;
+    timeline.innerHTML = state.blocks.map((b,index) => {
+      const begin = start + elapsed; elapsed += Number(b.minutes) || 0;
+      const width = Math.max(115, Math.min(300, (Number(b.minutes)||1) * 8));
+      const category = typeof categoryInfo === 'function' ? categoryInfo(b.category).label : b.category;
+      return `<article class="timeline-segment" draggable="true" data-timeline-index="${index}" style="--timeline-width:${width}px;--timeline-grow:${Math.max(1,Number(b.minutes)||1)}"><div><div class="timeline-time">${clock(begin)}–${clock(start+elapsed)}</div><div class="timeline-name">${safeText(b.name)}</div><div class="timeline-category">${safeText(category)}</div></div><div class="timeline-duration-controls"><button class="secondary timeline-minus" data-i="${index}" type="button">−</button><strong>${Number(b.minutes)||0} min</strong><button class="secondary timeline-plus" data-i="${index}" type="button">+</button></div></article>`;
+    }).join('');
+    timeline.querySelectorAll('.timeline-minus').forEach(btn => btn.addEventListener('click', e => {e.stopPropagation(); const i=Number(btn.dataset.i); state.blocks[i].minutes=Math.max(1,(Number(state.blocks[i].minutes)||1)-1); render();}));
+    timeline.querySelectorAll('.timeline-plus').forEach(btn => btn.addEventListener('click', e => {e.stopPropagation(); const i=Number(btn.dataset.i); state.blocks[i].minutes=(Number(state.blocks[i].minutes)||0)+1; render();}));
+    timeline.querySelectorAll('.timeline-segment').forEach(seg => {
+      seg.addEventListener('click', e => {if (!e.target.closest('button') && typeof openBlockModal === 'function') openBlockModal(Number(seg.dataset.timelineIndex));});
+      seg.addEventListener('dragstart', e => {seg.classList.add('dragging'); e.dataTransfer.setData('text/timeline-index', seg.dataset.timelineIndex); e.dataTransfer.effectAllowed='move';});
+      seg.addEventListener('dragend', () => timeline.querySelectorAll('.timeline-segment').forEach(x => x.classList.remove('dragging','drop-target')));
+      seg.addEventListener('dragover', e => {e.preventDefault(); seg.classList.add('drop-target');});
+      seg.addEventListener('dragleave', () => seg.classList.remove('drop-target'));
+      seg.addEventListener('drop', e => {e.preventDefault(); const from=Number(e.dataTransfer.getData('text/timeline-index')), to=Number(seg.dataset.timelineIndex); if(Number.isInteger(from)&&Number.isInteger(to)&&from!==to){const [moved]=state.blocks.splice(from,1);state.blocks.splice(to,0,moved);render();}});
+    });
+  }
+
+  installHome();
+  installTimeline();
+  const previousShow = showAppPage;
+  showAppPage = function(page){
+    const home = byId('homePage');
+    if (page === 'home'){
+      ['builderPage','libraryPage','teamBoardPage','practiceDataPage','practiceQueuePage','drillLibraryPage','whiteboardPage'].forEach(id => {byId(id)?.classList.remove('active'); if(id==='builderPage')byId(id)?.classList.add('hidden-page');});
+      document.body.classList.remove('whiteboard-tv');
+      home?.classList.add('active');
+      document.querySelectorAll('.page-nav button').forEach(btn => btn.classList.toggle('active',btn.id==='navHome'));
+      renderHome(); window.scrollTo(0,0); return;
+    }
+    home?.classList.remove('active');
+    byId('navHome')?.classList.remove('active');
+    return previousShow(page);
+  };
+  const previousRender = render;
+  render = function(){previousRender();renderTimeline();renderHome();};
+  renderTimeline(); renderHome();
+  const params = new URLSearchParams(location.search);
+  const special = params.has('tv') || params.has('whiteboard') || params.has('code') || location.hash.startsWith('#practice=');
+  if (!special) showAppPage('home');
+})();
