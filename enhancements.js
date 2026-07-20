@@ -91,3 +91,19 @@
   const originalDrills=renderDrillLibrary; renderDrillLibrary=function(){originalDrills();enhanceDrillCards()};
   installAnalyticsUI();installDropZone();installWhiteboard();renderAdvancedAnalytics();enhanceDrillCards();
 })();
+
+/* Final whiteboard tab isolation fix. */
+(() => {
+  const hideWhiteboard = () => {
+    const page = document.getElementById('whiteboardPage');
+    if (page) page.classList.remove('active');
+    if (!new URLSearchParams(location.search).has('whiteboard')) {
+      document.body.classList.remove('whiteboard-tv');
+    }
+  };
+  document.addEventListener('click', (event) => {
+    const navButton = event.target.closest('.page-nav button');
+    if (navButton && navButton.id !== 'navWhiteboard') hideWhiteboard();
+  }, true);
+  window.addEventListener('hashchange', hideWhiteboard);
+})();
