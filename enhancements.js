@@ -138,7 +138,7 @@
 
     const page = document.createElement('section');
     page.id = 'homePage';
-    page.className = 'home-page page-view';
+    page.className = 'home-page page-view hidden-page';
     page.innerHTML = `
       <div class="home-hero">
         <section class="home-identity">
@@ -256,11 +256,13 @@
     if (page === 'home'){
       ['builderPage','libraryPage','teamBoardPage','practiceDataPage','practiceQueuePage','drillLibraryPage','whiteboardPage'].forEach(id => {byId(id)?.classList.remove('active'); if(id==='builderPage')byId(id)?.classList.add('hidden-page');});
       document.body.classList.remove('whiteboard-tv');
+      home?.classList.remove('hidden-page');
       home?.classList.add('active');
       document.querySelectorAll('.page-nav button').forEach(btn => btn.classList.toggle('active',btn.id==='navHome'));
       renderHome(); window.scrollTo(0,0); return;
     }
     home?.classList.remove('active');
+    home?.classList.add('hidden-page');
     byId('navHome')?.classList.remove('active');
     return previousShow(page);
   };

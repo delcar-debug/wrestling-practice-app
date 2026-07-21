@@ -225,9 +225,9 @@ body.detached-tv .team-board-item.current .team-board-details,
 .rating-label{font-size:.66rem;font-weight:850;text-transform:uppercase;color:#6b7280}
 .rating-buttons{display:flex;gap:4px;flex-wrap:wrap}
 .rating-btn{padding:6px 12px;font-size:.78rem;font-weight:850;border-radius:999px;border:2px solid transparent;background:#eef0f3;color:#374151}
-#practiceRatingRow{flex-direction:column;align-items:flex-start;gap:4px;margin-top:8px}
-#practiceRatingRow .rating-buttons{flex-wrap:nowrap;gap:3px;width:100%}
-#practiceRatingRow .rating-btn{padding:3px 4px;font-size:.6rem;flex:1;text-align:center;white-space:nowrap}
+#practiceRatingRow,#teamCultureRatingRow{flex-direction:column;align-items:flex-start;gap:4px;margin-top:8px}
+#practiceRatingRow .rating-buttons,#teamCultureRatingRow .rating-buttons{flex-wrap:nowrap;gap:3px;width:100%}
+#practiceRatingRow .rating-btn,#teamCultureRatingRow .rating-btn{padding:3px 4px;font-size:.6rem;flex:1;text-align:center;white-space:nowrap}
 .rating-btn.rating-great{color:#16a34a}.rating-btn.rating-great.active{background:#16a34a;color:#fff;border-color:#16a34a}
 .rating-btn.rating-good{color:#2563eb}.rating-btn.rating-good.active{background:#2563eb;color:#fff;border-color:#2563eb}
 .rating-btn.rating-okay{color:#d97706}.rating-btn.rating-okay.active{background:#d97706;color:#fff;border-color:#d97706}
