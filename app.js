@@ -177,9 +177,7 @@ function renderTimer(){
   el.practiceRemaining.textContent=fmt(remainingSecs);
   const endsAt=$('practiceEndsAt');
   if(endsAt){
-    const now=new Date();
-    const projected=now.getHours()*60+now.getMinutes()+Math.round(remainingSecs/60);
-    endsAt.textContent=clock(projected);
+    endsAt.textContent=clock(startMins()+total());
   }
   if(el.overallCoachNotes&&document.activeElement!==el.overallCoachNotes)el.overallCoachNotes.value=state.overallCoachNotes||'';
 
@@ -306,7 +304,7 @@ async function initPlayer(){
   state.spotify.player.addListener('account_error',()=>el.spotifyStatus.textContent='Spotify Premium is required for playback in this app.');
   state.spotify.player.addListener('playback_error',({message})=>el.spotifyStatus.textContent='Playback error: '+message);
   state.spotify.player.addListener('autoplay_failed',()=>el.spotifyStatus.textContent='Tap Enable Player to allow audio in this browser.');
-  state.spotify.player.addListener('player_state_changed',st=>{if(!st)return;state.spotify.paused=st.paused;let tr=st.track_window.current_track;el.trackName.textContent=tr.name;el.trackArtist.textContent=tr.artists.map(a=>a.name).join(', ');el.albumArt.src=tr.album.images[0]?.url||'';$('playPauseBtn').textContent=st.paused?'▶':'⏸';window.SpotifyController?.onStateChanged?.(st)});
+  state.spotify.player.addListener('player_state_changed',st=>{if(!st)return;state.spotify.paused=st.paused;let tr=st.track_window.current_track;el.trackName.textContent=tr.name;el.trackArtist.textContent=tr.artists.map(a=>a.name).join(', ');if(el.albumArt)el.albumArt.src=tr.album.images[0]?.url||'';$('playPauseBtn').textContent=st.paused?'▶':'⏸';window.SpotifyController?.onStateChanged?.(st)});
   const ok=await state.spotify.player.connect();
   if(!ok)el.spotifyStatus.textContent='Spotify player could not connect. Refresh and try again.';
 }
@@ -734,7 +732,7 @@ async function sharePracticePdf(){
     el.shareProgress.textContent='PDF downloaded. Your email app is opening; attach the PDF, then use Mark sent in Coach Mode.';
   }catch(e){if(e.name==='AbortError'){el.shareProgress.textContent='Sharing canceled.';return}el.shareProgress.textContent=e.message;alert(e.message)}
 }
-async function bootSpotify(){try{let saved=JSON.parse(localStorage.getItem('spotify_tokens')||'null');if(saved)Object.assign(state.spotify,{token:saved.accessToken,refreshToken:saved.refreshToken,expiresAt:saved.expiresAt});let code=new URLSearchParams(location.search).get('code');if(code)await exchangeCode(code);if(await token()){el.spotifyLoginBtn.textContent='Loading Player…';el.spotifyStatus.textContent='Spotify login complete. Loading player…';loadSDK()}}catch(e){el.spotifyStatus.textContent=e.message}}
+async function bootSpotify(){let saved=null;try{saved=JSON.parse(localStorage.getItem('spotify_tokens')||'null')}catch(e){console.warn('Cleared corrupted Spotify token cache',e);localStorage.removeItem('spotify_tokens');saved=null}try{if(saved)Object.assign(state.spotify,{token:saved.accessToken,refreshToken:saved.refreshToken,expiresAt:saved.expiresAt});let code=new URLSearchParams(location.search).get('code');if(code)await exchangeCode(code);if(await token()){el.spotifyLoginBtn.textContent='Loading Player…';el.spotifyStatus.textContent='Spotify login complete. Loading player…';loadSDK()}}catch(e){el.spotifyStatus.textContent=e.message}}
 function selectCoachBlock(index,{resetTimer=true}={}){
   if(!Array.isArray(state.blocks)||index<0||index>=state.blocks.length)return false;
   syncCurrentBlock();

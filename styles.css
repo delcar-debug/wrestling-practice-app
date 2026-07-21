@@ -180,8 +180,7 @@ body.detached-tv .team-board-item.current .team-board-details,
 .spotify-summary-status{font-size:.72rem;color:#6b7280;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:160px}
 .spotify-body{padding:0 9px 9px;display:flex;flex-direction:column;gap:9px}
 .spotify-controls-full{display:flex;flex-direction:column;gap:6px}
-.spotify-simple .now-playing{margin-top:0;grid-template-columns:52px minmax(0,1fr);padding:9px}
-.spotify-simple .album-art{width:52px;height:52px}
+.spotify-simple .now-playing{margin-top:0;grid-template-columns:minmax(0,1fr);padding:9px}
 .spotify-progress{display:flex;flex-direction:column;gap:2px}
 .spotify-progress input[type="range"]{width:100%;accent-color:var(--maroon,#7a1732)}
 .spotify-progress-times{display:flex;justify-content:space-between;font-size:.68rem;color:#6b7280}
@@ -193,7 +192,6 @@ body.detached-tv .team-board-item.current .team-board-details,
 .spotify-up-next-list{display:grid;gap:4px}
 .spotify-up-next-item{display:flex;justify-content:space-between;gap:8px;font-size:.76rem;color:#4b5563;background:#f8fafc;border-radius:7px;padding:5px 8px}
 .spotify-up-next-item span:last-child{color:#9aa2b1;flex:0 0 auto;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-@media(max-width:560px){.spotify-simple .now-playing{grid-template-columns:46px minmax(0,1fr)}.spotify-simple .album-art{width:46px;height:46px}}
 
 /* Coach Mode layout refinements */
 .tools-panel{grid-template-rows:auto auto auto;align-content:start;overflow-y:auto}
@@ -413,8 +411,9 @@ body.dash-resizing .dash-resize-handle::after{background:var(--maroon)}
 .whiteboard-display>*:not(.wb-logo){position:relative;z-index:1}
 
 /* ===== Timer pills row (practice left + ends at) ===== */
-.timer-pills-row{display:flex;justify-content:center;flex-wrap:wrap;gap:6px}
-.timer-pills-row .remaining-pill{display:inline-flex;align-items:center;gap:4px}
+.timer-pills-row{display:flex;justify-content:center;flex-wrap:nowrap;gap:5px}
+.timer-pills-row .remaining-pill{display:inline-flex;align-items:center;gap:4px;white-space:nowrap;padding:3px 8px;font-size:.7rem}
+.timer-pills-row .remaining-pill strong{font-size:.82rem}
 
 /* ===== Breakdown pie charts ===== */
 .breakdown-pie-wrap{display:flex;align-items:center;gap:16px;flex-wrap:wrap;padding:4px 0}
