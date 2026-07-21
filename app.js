@@ -567,7 +567,7 @@ function weekLabelShort(key){const d=new Date(key+'T12:00:00');return Number.isN
 function datedArchivesSorted(){return [...(state.archives||[])].filter(a=>a.date||a.archivedAt).sort((a,b)=>new Date(a.date||a.archivedAt)-new Date(b.date||b.archivedAt))}
 const RATING_COLORS={great:'#16a34a',good:'#2563eb',okay:'#d97706',poor:'#dc2626'};
 const RATING_LABELS={great:'Great',good:'Good',okay:'Okay',poor:'Poor'};
-function renderRatingButtons(){document.querySelectorAll('#practiceRatingRow .rating-btn').forEach(b=>b.classList.toggle('active',b.dataset.rating===state.practiceRating))}
+function renderRatingButtons(){const sel=document.getElementById('practiceRatingSelect');if(sel&&sel.value!==(state.practiceRating||''))sel.value=state.practiceRating||''}
 const PRACTICE_TYPE_HINTS={learning:[{label:'Random/Variable Structure',cls:'hint-structure'},{label:'Summary/Bandwidth Feedback',cls:'hint-feedback'}],performance:[{label:'Block/Structured Structure',cls:'hint-structure'},{label:'Immediate Feedback',cls:'hint-feedback'}]};
 function renderPracticeTypeHints(){
   const type=el.practiceType?.value||'';
@@ -792,7 +792,7 @@ function selectCoachBlock(index,{resetTimer=true}={}){
 }
 $('sharePdfBtn').onclick=sharePracticePdf;$('coachPdfSendBtn').onclick=sharePracticePdf;$('coachPdfMarkSentBtn').onclick=()=>{setPdfStatus({sentAt:new Date().toISOString()});upsertAutoArchive({silent:true})};$('manageEmailsBtn').onclick=openEmailModal;$('addEmailBtn').onclick=addEmailRow;$('saveEmailListBtn').onclick=saveCoachEmails;$('cancelEmailModal').onclick=closeEmailModal;el.emailModal.onclick=e=>{if(e.target===el.emailModal)closeEmailModal()};$('addBtn').onclick=addBlock;$('saveBlockModal').onclick=saveBlockFromModal;$('cancelBlockModal').onclick=closeBlockModal;el.blockModal.onclick=e=>{if(e.target===el.blockModal)closeBlockModal()};el.activityName.onkeydown=e=>{if(e.key==='Enter')saveBlockFromModal()};[el.practiceDate,el.startTime,el.practiceLength,el.practiceGoal].filter(Boolean).forEach(x=>{x.oninput=()=>{render();save()};x.onchange=()=>{render();save()}});$('startBtn').onclick=startPractice;$('navBuilder').onclick=()=>showAppPage('builder');$('navCoach').onclick=()=>showAppPage('coach');$('navTeam').onclick=()=>showAppPage('team');$('navLibrary').onclick=()=>showAppPage('library');$('navData').onclick=()=>showAppPage('data');$('teamBoardBackBtn').onclick=()=>showAppPage('builder');$('teamBoardTvBtn').onclick=openDetachedTeamBoard;$('librarySearch').oninput=renderLibrary;$('librarySeason').onchange=renderLibrary;$('clearBtn').onclick=()=>{if(confirm('Clear the practice?')){endPractice();state.blocks=[];render()}};$('exitTimerBtn').textContent='Back to Practice Builder';$('exitTimerBtn').onclick=hideCoachMode;$('openTeamFromCoach').textContent='Open TV View';$('openTeamFromCoach').onclick=openDetachedTeamBoard;$('coachStartBtn').onclick=()=>{state.running=true;ensurePracticeTicker();saveLiveState()};$('pauseBtn').onclick=()=>{state.running=false;saveLiveState()};$('previousBtn').onclick=()=>{if(state.currentIndex<=0)return;selectCoachBlock(state.currentIndex-1)};$('nextBtn').onclick=()=>{if(state.currentIndex+1>=state.blocks.length){endPractice();return alert('Practice complete.')}selectCoachBlock(state.currentIndex+1)};$('intervalStartBtn').onclick=startInterval;$('intervalPauseBtn').onclick=()=>{state.interval.running=!state.interval.running;renderInterval()};$('intervalResetBtn').onclick=resetInterval;$('intervalTestBtn').onclick=async()=>{await unlockWhistle();await playWhistle()};$('intervalMatchBtn').onclick=()=>{el.workSeconds.value=120;el.restSeconds.value=15;el.intervalRounds.value=3;save();resetInterval();};$('intervalOneMinuteBtn').onclick=()=>{el.workSeconds.value=60;el.restSeconds.value=15;el.intervalRounds.value=7;save();resetInterval();};[el.workSeconds,el.restSeconds,el.intervalRounds].forEach(x=>x.oninput=()=>{save();if(state.interval.phase==='ready')resetInterval()});el.spotifyLoginBtn.onclick=async()=>{if(await token())await enableSpotifyPlayer();else loginSpotify()};$('prevTrackBtn').onclick=async()=>{if(!state.spotify.activated&&!(await enableSpotifyPlayer()))return;state.spotify.player?.previousTrack()};$('nextTrackBtn').onclick=async()=>{if(!state.spotify.activated&&!(await enableSpotifyPlayer()))return;state.spotify.player?.nextTrack()};$('playPauseBtn').onclick=async()=>{if(!state.spotify.activated&&!(await enableSpotifyPlayer()))return;state.spotify.player?.togglePlay()};document.querySelectorAll('.mobile-tabs button').forEach(b=>b.onclick=()=>{document.querySelectorAll('.mobile-tabs button').forEach(x=>x.classList.toggle('active',x===b));document.querySelectorAll('[data-panel]').forEach(p=>p.classList.toggle('mobile-active',p.dataset.panel===b.dataset.tab))});
 if(el.overallCoachNotes)el.overallCoachNotes.addEventListener('input',()=>{state.overallCoachNotes=el.overallCoachNotes.value;save()});load();if(el.overallCoachNotes)el.overallCoachNotes.value=state.overallCoachNotes||'';render();renderLibrary();resetInterval();restoreLiveState();ensurePracticeTicker();bootSpotify();if(['1','team-board'].includes(new URLSearchParams(location.search).get('tv'))){document.body.classList.add('detached-tv');showAppPage('team');el.teamBoardPage.classList.add('tv-mode');document.title='Holmen Women’s Wrestling — Team Board';refreshTeamBoardFromStorage();}document.addEventListener('visibilitychange',()=>{if(document.hidden&&state.practiceActive)saveLiveState()});
-document.querySelectorAll('#practiceRatingRow .rating-btn').forEach(b=>b.onclick=()=>{state.practiceRating=b.dataset.rating;renderRatingButtons();save()});
+const ratingSelect=document.getElementById('practiceRatingSelect');if(ratingSelect)ratingSelect.onchange=()=>{state.practiceRating=ratingSelect.value;renderRatingButtons();save()};
 if(el.practiceType)el.practiceType.onchange=()=>{renderPracticeTypeHints();save()};
 renderRatingButtons();
 renderPracticeTypeHints();
@@ -960,12 +960,29 @@ $('dataTabDate').onclick=()=>setDataView('date');$('dataTabActive').onclick=()=>
   const makeShareUrl=()=>window.buildShareUrlForPayload(practicePayload());
   window.currentPracticeShareUrl=makeShareUrl;
   window.buildTvShareUrlForPayload=payload=>{
-    const url=new URL(location.origin+location.pathname);
+    const url=new URL(location.href);
+    url.search='';
     url.searchParams.set('tv','team-board');
     url.hash='practice='+utf8ToB64Url(JSON.stringify(payload));
     return url.toString();
   };
-  window.currentPracticeTvUrl=()=>window.buildTvShareUrlForPayload(practicePayload());
+  window.currentPracticeTvUrl=()=>{
+    try{
+      const payload=practicePayload();
+      const long=window.buildTvShareUrlForPayload(payload);
+      if(long.length<=1800)return long;
+      const id=genShareId();
+      saveSharedLink(id,payload);
+      const url=new URL(location.href);
+      url.search='';
+      url.searchParams.set('tv','team-board');
+      url.hash='p='+id;
+      return url.toString();
+    }catch(err){
+      console.error('Could not build TV share link',err);
+      return '';
+    }
+  };
   let shareContext='current',shareDateOverride='';
   const shareMessage=url=>{
     const rawDate=shareDateOverride||el.practiceDate?.value;

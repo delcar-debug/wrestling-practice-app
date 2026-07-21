@@ -639,8 +639,6 @@
     if (!anchor || !spotifyBox || spotifyBox.dataset.relocated === '1') return false;
     spotifyBox.dataset.relocated = '1';
     anchor.after(spotifyBox);
-    const ratingRow = document.getElementById('practiceRatingRow');
-    if (ratingRow) spotifyBox.after(ratingRow);
     return true;
   }
 
