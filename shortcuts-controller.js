@@ -22,7 +22,7 @@
   window.addEventListener('keydown',event=>{
     if(!isCoachOpen()||event.repeat||typingTarget(event.target))return;
     const code=event.code,key=event.key;
-    if(code==='F8'){event.preventDefault();window.SpotifyController?.toggle();return}
+    if(code==='F8'||code==='Space'){event.preventDefault();window.SpotifyController?.toggle();return}
     if(key==='w'||key==='W'){event.preventDefault();click('intervalTestBtn');return}
     if(key==='t'||key==='T'){event.preventDefault();intervalToggle();return}
     if(key==='m'||key==='M'){event.preventDefault();

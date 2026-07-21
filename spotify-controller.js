@@ -2,8 +2,32 @@
 (()=>{
   'use strict';
   const byId=id=>document.getElementById(id);
-  const status=message=>{const node=byId('spotifyStatus');if(node)node.textContent=message};
+  const status=message=>{
+    const node=byId('spotifyStatus');if(node)node.textContent=message;
+    const summary=byId('spotifySummaryStatus');if(summary)summary.textContent=message;
+  };
   const controller={queue:[],baseQueue:[],index:-1,contextUri:null,busy:false,shuffle:false};
+
+  const fmtMs=ms=>{const s=Math.max(0,Math.floor((ms||0)/1000));return `${Math.floor(s/60)}:${String(s%60).padStart(2,'0')}`};
+  const progress={positionMs:0,durationMs:0,paused:true,lastTick:Date.now(),seeking:false};
+  function renderProgress(){
+    const bar=byId('spotifyProgressBar'),elapsedEl=byId('spotifyElapsed'),durationEl=byId('spotifyDuration');
+    if(!bar||progress.seeking)return;
+    const elapsed=progress.paused?progress.positionMs:Math.min(progress.durationMs||Infinity,progress.positionMs+(Date.now()-progress.lastTick));
+    bar.value=progress.durationMs?String(Math.round((elapsed/progress.durationMs)*1000)):'0';
+    if(elapsedEl)elapsedEl.textContent=fmtMs(elapsed);
+    if(durationEl)durationEl.textContent=fmtMs(progress.durationMs);
+  }
+  setInterval(renderProgress,500);
+
+  function renderUpNext(){
+    const box=byId('spotifyUpNext'),list=byId('spotifyUpNextList');
+    if(!box||!list)return;
+    const upcoming=controller.index>=0?controller.queue.slice(controller.index+1,controller.index+4):[];
+    if(!upcoming.length){box.hidden=true;list.innerHTML='';return}
+    box.hidden=false;
+    list.innerHTML=upcoming.map(t=>`<div class="spotify-up-next-item"><span>${typeof esc==='function'?esc(t.name||'Track'):(t.name||'Track')}</span><span>${typeof esc==='function'?esc(t.sub||''):(t.sub||'')}</span></div>`).join('');
+  }
 
   async function ready(){
     if(!state.spotify.player){
@@ -21,7 +45,22 @@
   }
 
   async function refreshUi(){
-    try{const s=await state.spotify.player?.getCurrentState();if(s&&typeof renderSpotifyState==='function')renderSpotifyState(s)}catch{}
+    try{const s=await state.spotify.player?.getCurrentState();if(s)onStateChanged(s)}catch{}
+  }
+
+  function onStateChanged(st){
+    if(!st)return;
+    progress.paused=!!st.paused;
+    progress.positionMs=Number(st.position)||0;
+    progress.durationMs=Number(st.duration)||0;
+    progress.lastTick=Date.now();
+    const uri=st.track_window?.current_track?.uri;
+    if(uri&&controller.queue.length){
+      const found=controller.queue.findIndex(x=>x.uri===uri);
+      if(found>=0)controller.index=found;
+    }
+    renderProgress();
+    renderUpNext();
   }
 
   function buildVisibleTrackQueue(selected){
@@ -178,6 +217,16 @@
 
   let muted=false;
   let volumeBeforeMute=0.7;
+  function setMuteUi(isMuted){
+    muted=isMuted;
+    const button=byId('muteSpotifyBtn');
+    if(button){
+      button.setAttribute('aria-pressed',String(muted));
+      button.textContent=muted?'🔇 Unmute':'🔊 Mute';
+    }
+    const slider=byId('spotifyVolumeSlider');
+    if(slider&&document.activeElement!==slider)slider.value=String(Math.round((muted?0:(volumeBeforeMute||0.7))*100));
+  }
   async function toggleMute(){
     try{
       await ready();
@@ -185,18 +234,32 @@
       if(!muted){
         volumeBeforeMute=current>0.01?current:volumeBeforeMute;
         await state.spotify.player.setVolume(0);
-        muted=true;
+        setMuteUi(true);
       }else{
         await state.spotify.player.setVolume(volumeBeforeMute||0.7);
-        muted=false;
-      }
-      const button=byId('muteSpotifyBtn');
-      if(button){
-        button.setAttribute('aria-pressed',String(muted));
-        button.textContent=muted?'🔇 Unmute':'🔊 Mute';
+        setMuteUi(false);
       }
       status(muted?'Spotify muted':'Spotify unmuted');
     }catch(error){console.error(error);status(error.message||'Could not change Spotify volume.')}
+  }
+  async function setVolumeFromSlider(percent){
+    try{
+      await ready();
+      const v=Math.max(0,Math.min(100,Number(percent)))/100;
+      await state.spotify.player.setVolume(v);
+      if(v>0)volumeBeforeMute=v;
+      setMuteUi(v<=0.001);
+    }catch(error){console.error(error);status(error.message||'Could not change Spotify volume.')}
+  }
+  async function seekTo(percent){
+    try{
+      await ready();
+      if(!progress.durationMs)return;
+      const ms=Math.round((Math.max(0,Math.min(1000,Number(percent)))/1000)*progress.durationMs);
+      await state.spotify.player.seek(ms);
+      progress.positionMs=ms;progress.lastTick=Date.now();
+      renderProgress();
+    }catch(error){console.error(error);status(error.message||'Could not seek.')}
   }
 
   function replaceButton(id,handler){
@@ -209,10 +272,25 @@
     });
   }
 
+  function wireSlider(id,onInput,onCommit){
+    const el=byId(id);if(!el)return;
+    el.addEventListener('input',()=>onInput?.(el.value));
+    el.addEventListener('change',()=>onCommit?.(el.value));
+  }
+
   function bind(){
     try{playSpotify=play}catch(error){console.warn('Could not replace playSpotify route',error)}
     replaceButton('playPauseBtn',toggle);
     replaceButton('muteSpotifyBtn',toggleMute);
+    replaceButton('shuffleBtn',toggleShuffle);
+    replaceButton('prevTrackBtn',()=>skip('previous'));
+    replaceButton('nextTrackBtn',()=>skip('next'));
+    wireSlider('spotifyVolumeSlider',null,v=>setVolumeFromSlider(v));
+    wireSlider('spotifyProgressBar',v=>{
+      progress.seeking=true;
+      const elapsedEl=byId('spotifyElapsed');
+      if(elapsedEl&&progress.durationMs)elapsedEl.textContent=fmtMs((Number(v)/1000)*progress.durationMs);
+    },v=>{progress.seeking=false;seekTo(v)});
     window.SpotifyController={
       play,
       previous:()=>skip('previous'),
@@ -221,6 +299,7 @@
       mute:toggleMute,
       shuffle:toggleShuffle,
       ready,
+      onStateChanged,
       debug:()=>({...controller,queue:controller.queue.map(x=>({name:x.name,uri:x.uri})),baseQueue:controller.baseQueue.map(x=>({name:x.name,uri:x.uri}))})
     };
   }

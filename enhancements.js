@@ -77,7 +77,7 @@
     page.innerHTML=`<div class="whiteboard-toolbar"><div><h1>Wrestling Room Whiteboard</h1><p>Live messages for athletes, staff, or the TV display.</p></div><button class="primary" id="openWhiteboardTv">Open TV View</button></div><div class="whiteboard-editor"><label>Headline<input id="wbHeadline" maxlength="80" placeholder="Today's focus"></label><label>Goals / reminders<textarea id="wbGoals" rows="7" placeholder="Hand fight first&#10;Finish through the edge&#10;Great partners"></textarea></label><label>Athlete spotlight<input id="wbSpotlight" maxlength="100" placeholder="Optional athlete or group focus"></label></div><div class="whiteboard-display" id="whiteboardDisplay"></div>`;
     document.querySelector('.app')?.appendChild(page);
     const load=()=>{try{return JSON.parse(localStorage.getItem('wpp-whiteboard')||'{}')}catch{return {}}};
-    const render=()=>{const d={headline:q('wbHeadline').value,goals:q('wbGoals').value,spotlight:q('wbSpotlight').value};localStorage.setItem('wpp-whiteboard',JSON.stringify(d));q('whiteboardDisplay').innerHTML=`<div class="wb-kicker">WRESTLING ROOM</div><h2>${safe(d.headline||'Today’s Focus')}</h2><div class="wb-goals">${safe(d.goals||'Add goals and reminders for the room.').replace(/\n/g,'<br>')}</div>${d.spotlight?`<div class="wb-spotlight"><span>Spotlight</span>${safe(d.spotlight)}</div>`:''}`};
+    const render=()=>{const d={headline:q('wbHeadline').value,goals:q('wbGoals').value,spotlight:q('wbSpotlight').value};localStorage.setItem('wpp-whiteboard',JSON.stringify(d));const logoSrc=document.querySelector('.brand img')?.src||'';q('whiteboardDisplay').innerHTML=`${logoSrc?`<img alt="" class="wb-logo" src="${logoSrc}">`:''}<div class="wb-kicker">WRESTLING ROOM</div><h2>${safe(d.headline||'Today’s Focus')}</h2><div class="wb-goals">${safe(d.goals||'Add goals and reminders for the room.').replace(/\n/g,'<br>')}</div>${d.spotlight?`<div class="wb-spotlight"><span>Spotlight</span>${safe(d.spotlight)}</div>`:''}`};
     const d=load();q('wbHeadline').value=d.headline||'';q('wbGoals').value=d.goals||'';q('wbSpotlight').value=d.spotlight||'';['wbHeadline','wbGoals','wbSpotlight'].forEach(id=>q(id).addEventListener('input',render));render();
     b.onclick=()=>showWhiteboard(); q('openWhiteboardTv').onclick=()=>{const u=new URL(location.href);u.searchParams.set('whiteboard','1');window.open(u,'wrestling-whiteboard','popup=yes,width=1400,height=900,resizable=yes')};
     if(new URLSearchParams(location.search).get('whiteboard')==='1'){document.body.classList.add('whiteboard-tv');showWhiteboard()}
@@ -186,7 +186,12 @@
     byId('homeSeasonHours').textContent = (mins / 60).toFixed(mins >= 600 ? 0 : 1);
     byId('homeTodayMinutes').textContent = `${typeof total === 'function' ? total() : 0}m`;
     byId('homeInboxCount').textContent = inbox.length;
-    byId('homeRecentPractices').innerHTML = archives.length ? archives.slice(0,5).map(a => `<div class="home-recent-row" data-archive-id="${safeText(a.id)}"><div><strong>${safeText(a.goal || 'Practice')}</strong><br><span>${safeText(a.date || 'No date')}</span></div><strong>${archiveMinutes(a)}m</strong></div>`).join('') : '<div class="home-empty">Archived practices will appear here.</div>';
+    const shortDate = value => {
+      if (!value) return 'No date';
+      const d = new Date(value + 'T12:00:00');
+      return Number.isNaN(d.getTime()) ? value : d.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' });
+    };
+    byId('homeRecentPractices').innerHTML = archives.length ? archives.slice(0,5).map(a => `<div class="home-recent-row" data-archive-id="${safeText(a.id)}"><div><strong>${safeText(a.goal || 'Practice')}</strong><br><span>${safeText(shortDate(a.date))}</span></div><strong>${archiveMinutes(a)}m</strong></div>`).join('') : '<div class="home-empty">Archived practices will appear here.</div>';
     byId('homeRecentPractices').querySelectorAll('.home-recent-row[data-archive-id]').forEach(row => {
       row.addEventListener('click', () => openArchiveCard(row.dataset.archiveId));
     });
@@ -621,4 +626,39 @@
 
   const start = () => install();
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', start); else start();
+})();
+
+/* ===== Relocate Spotify player under Practice Inbox + remember collapsed state ===== */
+(() => {
+  function relocateSpotify() {
+    const inbox = document.getElementById('coachPracticeInbox');
+    const spotifyBox = document.querySelector('.tools-panel .spotify-box');
+    if (!inbox || !spotifyBox || spotifyBox.dataset.relocated === '1') return false;
+    spotifyBox.dataset.relocated = '1';
+    inbox.after(spotifyBox);
+    return true;
+  }
+
+  function wireCollapsePersistence(el, key) {
+    if (!el || el.dataset.collapseWired === '1') return;
+    el.dataset.collapseWired = '1';
+    try { if (localStorage.getItem(key) === '1') el.open = true; } catch {}
+    el.addEventListener('toggle', () => { try { localStorage.setItem(key, el.open ? '1' : '0'); } catch {} });
+  }
+
+  function install() {
+    const moved = relocateSpotify();
+    wireCollapsePersistence(document.getElementById('spotifyBox'), 'wpp-spotify-open');
+    wireCollapsePersistence(document.getElementById('coachPracticeInbox'), 'wpp-coach-inbox-open');
+    return moved;
+  }
+
+  const start = () => install();
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', start); else start();
+  // Practice Inbox panel is created slightly after DOMContentLoaded in some load orders; retry briefly.
+  let attempts = 0;
+  const retry = setInterval(() => {
+    attempts++;
+    if (install() || attempts > 20) clearInterval(retry);
+  }, 150);
 })();

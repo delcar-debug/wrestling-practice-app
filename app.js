@@ -75,8 +75,47 @@ let editingBlockIndex=null;
 function render(){let goal=(el.practiceGoal?.value||'').trim();if(el.dashGoal)el.dashGoal.innerHTML=`<strong>Goal:</strong><span>${goal?esc(goal):'No daily goal entered'}</span>`;if(el.emailListSummary)el.emailListSummary.textContent=state.coachEmails.length?state.coachEmails.join(', '):'No coach emails saved';let running=0,s=startMins();el.practiceList.innerHTML=state.blocks.length?state.blocks.map((b,i)=>{let a=s+running;running+=b.minutes;let preview=(b.details||'').trim(),cat=categoryInfo(b.category);return `<article class="block" data-block-index="${i}"><div class="block-top"><button type="button" class="drag-handle" data-drag-index="${i}" aria-label="Hold and drag ${esc(b.name)} to reorder" title="Hold and drag to reorder">☰</button><div class="block-summary"><div class="block-name">${esc(b.name)}</div><div class="block-category">${categoryBadge(cat.id)}</div><div class="block-time">${clock(a)}–${clock(s+running)}</div></div><div class="block-duration">${b.minutes} min</div></div>${preview?`<div class="block-details-preview">${esc(preview)}</div>`:''}<div class="block-actions"><button type="button" class="edit-block" data-i="${i}">✏️ Edit</button><button type="button" class="duplicate-block" data-i="${i}">📄 Duplicate</button><button type="button" class="save-drill-block" data-i="${i}">🥋 Save Drill</button><button type="button" class="delete-block" data-i="${i}">🗑 Delete</button></div></article>`}).join(''):'<div class="empty">Add your first practice block.</div>';let t=total(),target=Math.max(1,+el.practiceLength.value||1),rem=target-t;el.scheduledValue.textContent=t+' min';el.endValue.textContent=clock(s+t);el.remainingValue.textContent=rem>=0?rem+' min':Math.abs(rem)+' min over';el.progressBar.style.width=Math.min(100,t/target*100)+'%';el.statusText.textContent=rem>0?`${rem} minutes remaining`:rem<0?`${Math.abs(rem)} minutes over`:'Practice time is exact';el.statusText.style.color=rem>0?'var(--amber)':rem<0?'var(--red)':'var(--green)';renderBreakdown();document.querySelectorAll('.edit-block').forEach(b=>b.onclick=()=>openBlockModal(+b.dataset.i));document.querySelectorAll('.duplicate-block').forEach(b=>b.onclick=()=>{let i=+b.dataset.i,copy={...state.blocks[i],id:crypto.randomUUID(),name:state.blocks[i].name+' Copy'};state.blocks.splice(i+1,0,copy);render()});document.querySelectorAll('.save-drill-block').forEach(b=>b.onclick=()=>saveBlockToDrillLibrary(+b.dataset.i));document.querySelectorAll('.delete-block').forEach(b=>b.onclick=()=>{let i=+b.dataset.i;if(confirm(`Delete "${state.blocks[i].name}"?`)){state.blocks.splice(i,1);render()}});bindBlockDragging();syncCurrentBlock();updateCoachButton();if(state.practiceActive)renderTimer();if(el.teamBoardPage?.classList.contains('active'))renderTeamBoard();save()}
 const TECHNIQUE_IDS=['neutral','top','bottom'];
 function breakdownRow(label,mins,pct,badge=''){return `<div class="breakdown-row"><div class="breakdown-label">${badge||`<span class="category-badge">${label}</span>`}</div><div class="breakdown-value">${mins} min · ${pct}%</div><div class="breakdown-track"><div class="breakdown-fill" style="width:${pct}%"></div></div></div>`}
-function overallBreakdownHtml(totals,grand,emptyText){const technique=TECHNIQUE_IDS.reduce((sum,id)=>sum+(Number(totals[id])||0),0);const rows=[];if(technique>0)rows.push(breakdownRow('Technique',technique,grand?Math.round(technique/grand*100):0,'<span class="category-badge category-neutral">Technique</span>'));CATEGORIES.filter(c=>!TECHNIQUE_IDS.includes(c.id)&&(Number(totals[c.id])||0)>0).forEach(c=>{const mins=Number(totals[c.id])||0;rows.push(breakdownRow(c.label,mins,grand?Math.round(mins/grand*100):0,categoryBadge(c.id)))});return rows.length?rows.join(''):`<div class="breakdown-empty">${emptyText}</div>`}
-function techniqueBreakdownHtml(totals,emptyText){const techniqueTotal=TECHNIQUE_IDS.reduce((sum,id)=>sum+(Number(totals[id])||0),0);const rows=TECHNIQUE_IDS.filter(id=>(Number(totals[id])||0)>0).map(id=>{const mins=Number(totals[id])||0;return breakdownRow(categoryInfo(id).label,mins,techniqueTotal?Math.round(mins/techniqueTotal*100):0,categoryBadge(id))});return rows.length?rows.join(''):`<div class="breakdown-empty">${emptyText}</div>`}
+function pieColorFor(id){return (typeof CATEGORY_CHART_COLORS!=='undefined'&&CATEGORY_CHART_COLORS[id])||'#7a1732'}
+function buildPieSvg(segments,size=126,strokeWidth=24){
+  const total=segments.reduce((s,x)=>s+x.mins,0);
+  if(!total)return '';
+  const r=(size-strokeWidth)/2,cx=size/2,cy=size/2,circumference=2*Math.PI*r;
+  let offset=0;
+  const circles=segments.map(seg=>{
+    const fraction=seg.mins/total;
+    const dash=fraction*circumference;
+    const circle=`<circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="${seg.color}" stroke-width="${strokeWidth}" stroke-dasharray="${dash.toFixed(2)} ${(circumference-dash).toFixed(2)}" stroke-dashoffset="${(-offset).toFixed(2)}"><title>${seg.label}: ${seg.mins} min (${seg.pct}%)</title></circle>`;
+    offset+=dash;
+    return circle;
+  }).join('');
+  return `<svg class="pie-chart-svg" viewBox="0 0 ${size} ${size}" role="img" aria-label="Breakdown pie chart" style="transform:rotate(-90deg)">${circles}</svg>`;
+}
+function breakdownPieHtml(segments,emptyText){
+  const filtered=segments.filter(s=>s.mins>0);
+  if(!filtered.length)return `<div class="breakdown-empty">${emptyText}</div>`;
+  const total=filtered.reduce((s,x)=>s+x.mins,0);
+  const svg=buildPieSvg(filtered);
+  const legend=filtered.map(s=>`<div class="pie-legend-item"><i style="background:${s.color}"></i><span>${esc(s.label)}</span><strong>${s.pct}%</strong></div>`).join('');
+  return `<div class="breakdown-pie-wrap"><div class="pie-chart-frame">${svg}<div class="pie-chart-center"><strong>${total}</strong><span>min</span></div></div><div class="pie-legend">${legend}</div></div>`;
+}
+function overallBreakdownHtml(totals,grand,emptyText){
+  const technique=TECHNIQUE_IDS.reduce((sum,id)=>sum+(Number(totals[id])||0),0);
+  const segments=[];
+  if(technique>0)segments.push({label:'Technique',mins:technique,pct:grand?Math.round(technique/grand*100):0,color:pieColorFor('neutral')});
+  CATEGORIES.filter(c=>!TECHNIQUE_IDS.includes(c.id)&&(Number(totals[c.id])||0)>0).forEach(c=>{
+    const mins=Number(totals[c.id])||0;
+    segments.push({label:c.label,mins,pct:grand?Math.round(mins/grand*100):0,color:pieColorFor(c.id)});
+  });
+  return breakdownPieHtml(segments,emptyText);
+}
+function techniqueBreakdownHtml(totals,emptyText){
+  const techniqueTotal=TECHNIQUE_IDS.reduce((sum,id)=>sum+(Number(totals[id])||0),0);
+  const segments=TECHNIQUE_IDS.filter(id=>(Number(totals[id])||0)>0).map(id=>{
+    const mins=Number(totals[id])||0;
+    return {label:categoryInfo(id).label,mins,pct:techniqueTotal?Math.round(mins/techniqueTotal*100):0,color:pieColorFor(id)};
+  });
+  return breakdownPieHtml(segments,emptyText);
+}
 function renderBreakdown(){if(!el.breakdownList)return;const totals=categoryTotals(),grand=total();el.breakdownList.innerHTML=overallBreakdownHtml(totals,grand,'Categorize blocks to see time totals.');if(el.techniqueBreakdownList)el.techniqueBreakdownList.innerHTML=techniqueBreakdownHtml(totals,'Add technique blocks to see Neutral, Top, and Bottom totals.')}
 function populateBlockDrillDropdown(selected=''){if(!el.drillPicker)return;el.drillPicker.innerHTML='<option value="">Select a drill…</option>'+drillLibrary.map(d=>`<option value="${esc(d.id)}" ${d.id===selected?'selected':''}>${esc(d.name)} — ${esc(categoryInfo(d.category).label)} (${d.minutes} min)</option>`).join('')}
 function applySelectedDrill(){const d=drillLibrary.find(x=>x.id===el.drillPicker.value);if(!d)return;el.activityName.value=d.name;el.activityMinutes.value=d.minutes;el.blockDetails.value=d.details||'';el.blockCategory.value=categoryInfo(d.category).id}
@@ -134,7 +173,14 @@ function renderTimer(){
   let n=state.blocks[state.currentIndex+1];
   el.timerNext.textContent=n?`Next: ${n.name} (${n.minutes} min)`:'Final block';
   let future=state.blocks.slice(state.currentIndex+1).reduce((s,x)=>s+x.minutes*60,0);
-  el.practiceRemaining.textContent=fmt(state.secondsLeft+future);
+  let remainingSecs=state.secondsLeft+future;
+  el.practiceRemaining.textContent=fmt(remainingSecs);
+  const endsAt=$('practiceEndsAt');
+  if(endsAt){
+    const now=new Date();
+    const projected=now.getHours()*60+now.getMinutes()+Math.round(remainingSecs/60);
+    endsAt.textContent=clock(projected);
+  }
   if(el.overallCoachNotes&&document.activeElement!==el.overallCoachNotes)el.overallCoachNotes.value=state.overallCoachNotes||'';
 
   const active=document.activeElement;
@@ -260,7 +306,7 @@ async function initPlayer(){
   state.spotify.player.addListener('account_error',()=>el.spotifyStatus.textContent='Spotify Premium is required for playback in this app.');
   state.spotify.player.addListener('playback_error',({message})=>el.spotifyStatus.textContent='Playback error: '+message);
   state.spotify.player.addListener('autoplay_failed',()=>el.spotifyStatus.textContent='Tap Enable Player to allow audio in this browser.');
-  state.spotify.player.addListener('player_state_changed',st=>{if(!st)return;state.spotify.paused=st.paused;let tr=st.track_window.current_track;el.trackName.textContent=tr.name;el.trackArtist.textContent=tr.artists.map(a=>a.name).join(', ');el.albumArt.src=tr.album.images[0]?.url||'';$('playPauseBtn').textContent=st.paused?'▶':'⏸'});
+  state.spotify.player.addListener('player_state_changed',st=>{if(!st)return;state.spotify.paused=st.paused;let tr=st.track_window.current_track;el.trackName.textContent=tr.name;el.trackArtist.textContent=tr.artists.map(a=>a.name).join(', ');el.albumArt.src=tr.album.images[0]?.url||'';$('playPauseBtn').textContent=st.paused?'▶':'⏸';window.SpotifyController?.onStateChanged?.(st)});
   const ok=await state.spotify.player.connect();
   if(!ok)el.spotifyStatus.textContent='Spotify player could not connect. Refresh and try again.';
 }
@@ -526,24 +572,48 @@ function buildSeasonTrendWeeks(){
   });
   return [...weeks.values()].sort((a,b)=>new Date(a.key)-new Date(b.key));
 }
-function buildMinutesTrendSvg(weeks){
-  if(!weeks.length)return '<div class="empty-library">Archive practices to see trends.</div>';
-  const w=680,h=200,padL=38,padB=26,padT=10,padR=8;
+function buildLineChartSvg(points,{getValue,getLabel,getTooltip,maxLabels=8,ariaLabel='Trend line chart'}={}){
+  if(!points.length)return '<div class="empty-library">Archive practices to see trends.</div>';
+  const w=680,h=200,padL=38,padB=26,padT=14,padR=12;
   const innerW=w-padL-padR,innerH=h-padT-padB;
-  const max=Math.max(1,...weeks.map(x=>x.totalMinutes));
-  const barW=innerW/weeks.length;
-  const bars=weeks.map((wk,i)=>{
-    const bh=Math.max(1,Math.round((wk.totalMinutes/max)*innerH));
-    const x=padL+i*barW+barW*0.15,bw=barW*0.7,y=padT+innerH-bh;
-    return `<rect x="${x.toFixed(1)}" y="${y.toFixed(1)}" width="${bw.toFixed(1)}" height="${bh}" rx="3" fill="var(--maroon)"><title>Week of ${weekLabelShort(wk.key)}: ${wk.totalMinutes} min across ${wk.count} practice${wk.count===1?'':'s'}</title></rect>`;
-  }).join('');
+  const values=points.map(getValue);
+  const max=Math.max(1,...values);
+  const stepX=points.length>1?innerW/(points.length-1):0;
+  const coords=points.map((p,i)=>{
+    const x=points.length>1?padL+i*stepX:padL+innerW/2;
+    const v=getValue(p);
+    const y=padT+innerH-(v/max)*innerH;
+    return {x,y,v,p};
+  });
+  const linePath=coords.map((c,i)=>`${i===0?'M':'L'}${c.x.toFixed(1)},${c.y.toFixed(1)}`).join(' ');
+  const floorY=(padT+innerH).toFixed(1);
+  const areaPath=`${linePath} L${coords[coords.length-1].x.toFixed(1)},${floorY} L${coords[0].x.toFixed(1)},${floorY} Z`;
+  const dots=coords.map(c=>`<circle cx="${c.x.toFixed(1)}" cy="${c.y.toFixed(1)}" r="3.5" fill="var(--maroon)" stroke="#fff" stroke-width="1.2"><title>${getTooltip(c.p,c.v)}</title></circle>`).join('');
   const ticks=[0,0.5,1].map(f=>{
     const val=Math.round(max*f),y=padT+innerH-innerH*f;
     return `<text x="${padL-6}" y="${(y+3).toFixed(1)}" text-anchor="end" class="chart-axis-label">${val}</text><line class="chart-gridline" x1="${padL}" x2="${w-padR}" y1="${y.toFixed(1)}" y2="${y.toFixed(1)}"/>`;
   }).join('');
-  const labelStep=Math.max(1,Math.ceil(weeks.length/8));
-  const xLabels=weeks.map((wk,i)=>i%labelStep===0?`<text x="${(padL+i*barW+barW/2).toFixed(1)}" y="${h-8}" text-anchor="middle" class="chart-axis-label">${weekLabelShort(wk.key)}</text>`:'').join('');
-  return `<svg class="trend-chart" viewBox="0 0 ${w} ${h}" role="img" aria-label="Practice minutes by week">${ticks}${bars}${xLabels}</svg>`;
+  const labelStep=Math.max(1,Math.ceil(points.length/maxLabels));
+  const xLabels=coords.map((c,i)=>i%labelStep===0?`<text x="${c.x.toFixed(1)}" y="${h-8}" text-anchor="middle" class="chart-axis-label">${getLabel(c.p)}</text>`:'').join('');
+  return `<svg class="trend-chart" viewBox="0 0 ${w} ${h}" role="img" aria-label="${ariaLabel}">${ticks}<path d="${areaPath}" fill="var(--maroon)" opacity="0.08" stroke="none"></path><path d="${linePath}" fill="none" stroke="var(--maroon)" stroke-width="2.5"></path>${dots}${xLabels}</svg>`;
+}
+function buildMinutesTrendSvg(weeks){
+  return buildLineChartSvg(weeks,{
+    getValue:wk=>wk.totalMinutes,
+    getLabel:wk=>weekLabelShort(wk.key),
+    getTooltip:(wk,v)=>`Week of ${weekLabelShort(wk.key)}: ${v} min across ${wk.count} practice${wk.count===1?'':'s'}`,
+    ariaLabel:'Practice minutes by week'
+  });
+}
+function buildPerPracticeMinutesSvg(){
+  const sorted=datedArchivesSorted();
+  return buildLineChartSvg(sorted,{
+    getValue:a=>archiveMinutesTotal(a),
+    getLabel:a=>weekLabelShort(a.date||(a.archivedAt||'').slice(0,10)),
+    getTooltip:(a,v)=>`${a.date?new Date(a.date+'T12:00:00').toLocaleDateString(undefined,{month:'short',day:'numeric'}):'Undated'}: ${v} min`,
+    maxLabels:10,
+    ariaLabel:'Practice minutes per practice'
+  });
 }
 function buildCategoryMixSvg(weeks){
   if(!weeks.length)return '<div class="empty-library">Archive practices to see trends.</div>';
@@ -572,6 +642,7 @@ function buildCategoryMixSvg(weeks){
 function renderTrendCharts(){
   const weeks=buildSeasonTrendWeeks();
   if($('dataTrendMinutesChart'))$('dataTrendMinutesChart').innerHTML=buildMinutesTrendSvg(weeks);
+  if($('dataTrendPerPracticeChart'))$('dataTrendPerPracticeChart').innerHTML=buildPerPracticeMinutesSvg();
   if($('dataTrendMixChart'))$('dataTrendMixChart').innerHTML=buildCategoryMixSvg(weeks);
 }
 function pctOf(part,total){return total?Math.round((part/total)*100):0}
