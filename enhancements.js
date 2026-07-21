@@ -185,8 +185,24 @@
     byId('homeSeasonHours').textContent = (mins / 60).toFixed(mins >= 600 ? 0 : 1);
     byId('homeTodayMinutes').textContent = `${typeof total === 'function' ? total() : 0}m`;
     byId('homeInboxCount').textContent = inbox.length;
-    byId('homeRecentPractices').innerHTML = archives.length ? archives.slice(0,5).map(a => `<div class="home-recent-row"><div><strong>${safeText(a.goal || 'Practice')}</strong><br><span>${safeText(a.date || 'No date')}</span></div><strong>${archiveMinutes(a)}m</strong></div>`).join('') : '<div class="home-empty">Archived practices will appear here.</div>';
+    byId('homeRecentPractices').innerHTML = archives.length ? archives.slice(0,5).map(a => `<div class="home-recent-row" data-archive-id="${safeText(a.id)}"><div><strong>${safeText(a.goal || 'Practice')}</strong><br><span>${safeText(a.date || 'No date')}</span></div><strong>${archiveMinutes(a)}m</strong></div>`).join('') : '<div class="home-empty">Archived practices will appear here.</div>';
+    byId('homeRecentPractices').querySelectorAll('.home-recent-row[data-archive-id]').forEach(row => {
+      row.addEventListener('click', () => openArchiveCard(row.dataset.archiveId));
+    });
   }
+
+  function openArchiveCard(id){
+    if (!id) return;
+    showAppPage('library');
+    const card = document.querySelector(`.archive-card[data-archive-id="${CSS?.escape ? CSS.escape(id) : id}"]`);
+    if (card) {
+      const month = card.closest('.archive-month');
+      if (month) month.open = true;
+      card.classList.add('open');
+      card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+  }
+  window.openArchiveCard = openArchiveCard;
 
   function installTimeline(){
     const builder = byId('builderPage');
@@ -243,6 +259,262 @@
   render = function(){previousRender();renderTimeline();renderHome();};
   renderTimeline(); renderHome();
   const params = new URLSearchParams(location.search);
-  const special = params.has('tv') || params.has('whiteboard') || params.has('code') || location.hash.startsWith('#practice=');
+  const special = params.has('tv') || params.has('whiteboard') || params.has('code') || location.hash.startsWith('#practice=') || location.hash.startsWith('#p=');
   if (!special) showAppPage('home');
+})();
+
+/* ===== Practice Templates ===== */
+(() => {
+  const byId = id => document.getElementById(id);
+  const safeText = value => String(value ?? '').replace(/[&<>"']/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
+  const KEY = 'wpp-practice-templates';
+  const readTemplates = () => { try { const v = JSON.parse(localStorage.getItem(KEY) || '[]'); return Array.isArray(v) ? v : []; } catch { return []; } };
+  const writeTemplates = list => { localStorage.setItem(KEY, JSON.stringify(list)); renderList(); };
+
+  function buildModal(){
+    if (byId('templatesBackdrop')) return;
+    const wrap = document.createElement('div');
+    wrap.className = 'modal-backdrop';
+    wrap.id = 'templatesBackdrop';
+    wrap.setAttribute('aria-hidden', 'true');
+    wrap.innerHTML = `<section class="block-modal templates-modal" role="dialog" aria-modal="true" aria-labelledby="templatesTitle">
+      <h2 id="templatesTitle">Practice Templates</h2>
+      <div class="template-save-row">
+        <input id="templateNameInput" type="text" placeholder="Template name (e.g. Tuesday Live Wrestling)">
+        <button class="primary" id="saveTemplateBtn" type="button">Save Current</button>
+      </div>
+      <div class="template-list" id="templateList"></div>
+      <div class="modal-actions" style="grid-template-columns:1fr">
+        <button class="secondary" id="closeTemplatesBtn" type="button">Close</button>
+      </div>
+    </section>`;
+    document.querySelector('.app')?.appendChild(wrap);
+    byId('saveTemplateBtn').addEventListener('click', saveCurrentAsTemplate);
+    byId('closeTemplatesBtn').addEventListener('click', closeModal);
+    wrap.addEventListener('click', e => { if (e.target === wrap) closeModal(); });
+    byId('templateNameInput').addEventListener('keydown', e => { if (e.key === 'Enter') saveCurrentAsTemplate(); });
+  }
+
+  function openModal(){ buildModal(); renderList(); byId('templatesBackdrop').classList.add('open'); byId('templatesBackdrop').setAttribute('aria-hidden','false'); }
+  function closeModal(){ byId('templatesBackdrop')?.classList.remove('open'); byId('templatesBackdrop')?.setAttribute('aria-hidden','true'); }
+
+  function saveCurrentAsTemplate(){
+    if (!Array.isArray(state.blocks) || !state.blocks.length) { alert('Add at least one practice block before saving a template.'); return; }
+    const nameInput = byId('templateNameInput');
+    const name = (nameInput.value || '').trim() || `Template ${new Date().toLocaleDateString()}`;
+    const template = {
+      id: crypto.randomUUID?.() || String(Date.now()),
+      name,
+      goal: byId('practiceGoal')?.value || '',
+      length: Number(byId('practiceLength')?.value) || (typeof total === 'function' ? total() : 90),
+      blocks: state.blocks.map(b => ({ name: b.name, minutes: Number(b.minutes) || 1, details: b.details || '', category: b.category || 'other' })),
+      createdAt: new Date().toISOString()
+    };
+    const list = readTemplates();
+    list.unshift(template);
+    writeTemplates(list);
+    nameInput.value = '';
+  }
+
+  function applyTemplate(id, { replace } = { replace: true }){
+    const t = readTemplates().find(x => x.id === id);
+    if (!t) return;
+    if (replace && state.blocks.length && !confirm('Replace the current practice blocks with this template?')) return;
+    const newBlocks = t.blocks.map(b => ({ id: crypto.randomUUID(), name: b.name, minutes: Number(b.minutes) || 1, details: b.details || '', category: b.category || 'other', coachNotes: '', completionStatus: 'not_completed', actualMinutes: Number(b.minutes) || 1 }));
+    state.blocks = replace ? newBlocks : [...state.blocks, ...newBlocks];
+    if (t.goal && byId('practiceGoal')) byId('practiceGoal').value = t.goal;
+    if (t.length && byId('practiceLength')) byId('practiceLength').value = t.length;
+    render(); save();
+    closeModal();
+    showAppPage('builder');
+  }
+
+  function deleteTemplate(id){
+    const t = readTemplates().find(x => x.id === id);
+    if (!t || !confirm(`Delete the "${t.name}" template?`)) return;
+    writeTemplates(readTemplates().filter(x => x.id !== id));
+  }
+
+  function renderList(){
+    const list = byId('templateList'); if (!list) return;
+    const templates = readTemplates();
+    list.innerHTML = templates.length ? templates.map(t => `<div class="template-card"><div><div class="template-card-name">${safeText(t.name)}</div><div class="template-card-meta">${t.blocks.length} block${t.blocks.length === 1 ? '' : 's'} · ${t.length || t.blocks.reduce((s,b)=>s+(Number(b.minutes)||0),0)} min${t.goal ? ' · ' + safeText(t.goal) : ''}</div></div><div class="template-card-actions"><button class="secondary" data-template-use="${t.id}" type="button">Use</button><button class="danger" data-template-delete="${t.id}" type="button">Delete</button></div></div>`).join('') : '<div class="template-empty">No saved templates yet. Build a practice, then save it as a template.</div>';
+    list.querySelectorAll('[data-template-use]').forEach(b => b.addEventListener('click', () => applyTemplate(b.dataset.templateUse)));
+    list.querySelectorAll('[data-template-delete]').forEach(b => b.addEventListener('click', () => deleteTemplate(b.dataset.templateDelete)));
+  }
+
+  function installButton(){
+    const actions = document.querySelector('#builderPage .actions');
+    if (!actions || byId('templatesBtn')) return;
+    const btn = document.createElement('button');
+    btn.className = 'secondary';
+    btn.id = 'templatesBtn';
+    btn.type = 'button';
+    btn.textContent = 'Templates';
+    btn.addEventListener('click', openModal);
+    actions.insertAdjacentElement('afterend', btn);
+  }
+
+  window.wppTemplates = { list: readTemplates, apply: applyTemplate, open: openModal, save: saveCurrentAsTemplate, remove: deleteTemplate };
+
+  const start = () => installButton();
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', start); else start();
+})();
+
+/* ===== Universal Search (Ctrl+K / Cmd+K) ===== */
+(() => {
+  const byId = id => document.getElementById(id);
+  const safeText = value => String(value ?? '').replace(/[&<>"']/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
+  const readJson = (key, fallback) => { try { const v = JSON.parse(localStorage.getItem(key) || 'null'); return v ?? fallback; } catch { return fallback; } };
+
+  const PAGES = [
+    { label: 'Home', sub: 'Dashboard and overview', page: 'home' },
+    { label: 'Practice Builder', sub: "Build today's practice", page: 'builder' },
+    { label: 'Coach Mode', sub: 'Run practice with the timer', page: 'coach' },
+    { label: 'Team Board', sub: 'Display the plan for the team', page: 'team' },
+    { label: 'Whiteboard', sub: 'TV whiteboard view', page: 'whiteboard' },
+    { label: 'Archive', sub: 'Past practices', page: 'library' },
+    { label: 'Data', sub: 'Season practice data', page: 'data' },
+    { label: 'Practice Inbox', sub: 'Items queued for a future practice', page: 'queue' },
+    { label: 'Drill Library', sub: 'Saved drills', page: 'drills' }
+  ];
+
+  function buildModal(){
+    if (byId('cmdkBackdrop')) return;
+    const wrap = document.createElement('div');
+    wrap.className = 'modal-backdrop';
+    wrap.id = 'cmdkBackdrop';
+    wrap.setAttribute('aria-hidden', 'true');
+    wrap.innerHTML = `<section class="block-modal cmdk-modal" role="dialog" aria-modal="true" aria-label="Universal search">
+      <div class="cmdk-input-row"><input id="cmdkInput" type="text" placeholder="Search practices, drills, inbox, templates, pages…" autocomplete="off"></div>
+      <div class="cmdk-results" id="cmdkResults"></div>
+      <div class="cmdk-hint"><span><kbd>↑</kbd><kbd>↓</kbd> Navigate</span><span><kbd>Enter</kbd> Open</span><span><kbd>Esc</kbd> Close</span></div>
+    </section>`;
+    document.querySelector('.app')?.appendChild(wrap);
+    wrap.addEventListener('click', e => { if (e.target === wrap) close(); });
+    const input = byId('cmdkInput');
+    input.addEventListener('input', () => renderResults(input.value));
+    input.addEventListener('keydown', onKeydown);
+  }
+
+  function buildIndex(){
+    const items = [];
+    PAGES.forEach(p => items.push({ type: 'Page', label: p.label, sub: p.sub, action: () => showAppPage(p.page) }));
+
+    const archives = readJson('wpp-practice-library', []);
+    (Array.isArray(archives) ? archives : []).forEach(a => {
+      const dateLabel = typeof archiveDateLabel === 'function' ? archiveDateLabel(a) : (a.date || 'Undated practice');
+      items.push({
+        type: 'Practice',
+        label: a.goal ? a.goal : dateLabel,
+        sub: `${dateLabel}${a.goal ? '' : ''}`.trim(),
+        action: () => { close(); window.openArchiveCard(a.id); }
+      });
+    });
+
+    const drills = readJson('wpp-drill-library', []);
+    (Array.isArray(drills) ? drills : []).forEach(d => {
+      items.push({
+        type: 'Drill',
+        label: d.name || 'Untitled drill',
+        sub: `${d.minutes || 0} min${d.tags ? ' · ' + d.tags : ''}`,
+        action: () => { close(); showAppPage('drills'); const s = byId('drillSearch'); if (s) { s.value = d.name || ''; s.dispatchEvent(new Event('input')); } }
+      });
+    });
+
+    const inbox = readJson('wpp-practice-queue', []);
+    (Array.isArray(inbox) ? inbox : []).forEach(q => {
+      items.push({
+        type: 'Inbox',
+        label: q.title || 'Untitled item',
+        sub: `Added by ${q.addedBy || 'Coach'}`,
+        action: () => { close(); showAppPage('queue'); const s = byId('queueSearch'); if (s) { s.value = q.title || ''; s.dispatchEvent(new Event('input')); } }
+      });
+    });
+
+    const templates = (window.wppTemplates && typeof window.wppTemplates.list === 'function') ? window.wppTemplates.list() : readJson('wpp-practice-templates', []);
+    (Array.isArray(templates) ? templates : []).forEach(t => {
+      items.push({
+        type: 'Template',
+        label: t.name || 'Untitled template',
+        sub: `${(t.blocks || []).length} blocks`,
+        action: () => { close(); if (window.wppTemplates) window.wppTemplates.apply(t.id); }
+      });
+    });
+
+    return items;
+  }
+
+  let activeIndex = 0;
+  let currentResults = [];
+
+  function renderResults(query){
+    const list = byId('cmdkResults');
+    const q = (query || '').trim().toLowerCase();
+    const all = buildIndex();
+    currentResults = q ? all.filter(item => `${item.label} ${item.sub} ${item.type}`.toLowerCase().includes(q)) : all.slice(0, 9);
+    currentResults = currentResults.slice(0, 30);
+    activeIndex = 0;
+    if (!currentResults.length){
+      list.innerHTML = '<div class="cmdk-empty">No matches. Try a different search.</div>';
+      return;
+    }
+    list.innerHTML = currentResults.map((item, i) => `<div class="cmdk-item${i === activeIndex ? ' active' : ''}" data-i="${i}"><div><strong>${safeText(item.label)}</strong>${item.sub ? `<span class="cmdk-sub">${safeText(item.sub)}</span>` : ''}</div><span class="cmdk-tag">${safeText(item.type)}</span></div>`).join('');
+    list.querySelectorAll('.cmdk-item').forEach(el => {
+      el.addEventListener('click', () => { const item = currentResults[Number(el.dataset.i)]; if (item) item.action(); });
+      el.addEventListener('mouseenter', () => setActive(Number(el.dataset.i)));
+    });
+  }
+
+  function setActive(i){
+    activeIndex = Math.max(0, Math.min(currentResults.length - 1, i));
+    byId('cmdkResults').querySelectorAll('.cmdk-item').forEach(el => el.classList.toggle('active', Number(el.dataset.i) === activeIndex));
+    byId('cmdkResults').querySelector('.cmdk-item.active')?.scrollIntoView({ block: 'nearest' });
+  }
+
+  function onKeydown(e){
+    if (e.key === 'ArrowDown'){ e.preventDefault(); setActive(activeIndex + 1); }
+    else if (e.key === 'ArrowUp'){ e.preventDefault(); setActive(activeIndex - 1); }
+    else if (e.key === 'Enter'){ e.preventDefault(); const item = currentResults[activeIndex]; if (item) item.action(); }
+    else if (e.key === 'Escape'){ e.preventDefault(); close(); }
+  }
+
+  function open(){
+    buildModal();
+    byId('cmdkBackdrop').classList.add('open');
+    byId('cmdkBackdrop').setAttribute('aria-hidden', 'false');
+    const input = byId('cmdkInput');
+    input.value = '';
+    renderResults('');
+    setTimeout(() => input.focus(), 0);
+  }
+
+  function close(){
+    byId('cmdkBackdrop')?.classList.remove('open');
+    byId('cmdkBackdrop')?.setAttribute('aria-hidden', 'true');
+  }
+
+  function installTrigger(){
+    const header = document.querySelector('.header');
+    if (!header || byId('cmdkOpenBtn')) return;
+    const btn = document.createElement('button');
+    btn.id = 'cmdkOpenBtn';
+    btn.type = 'button';
+    btn.className = 'cmdk-trigger';
+    btn.innerHTML = '🔍 Search <kbd>Ctrl K</kbd>';
+    btn.addEventListener('click', open);
+    header.appendChild(btn);
+  }
+
+  document.addEventListener('keydown', e => {
+    const key = (e.key || '').toLowerCase();
+    if ((e.ctrlKey || e.metaKey) && key === 'k'){
+      e.preventDefault();
+      const isOpen = byId('cmdkBackdrop')?.classList.contains('open');
+      if (isOpen) close(); else open();
+    }
+  });
+
+  const start = () => installTrigger();
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', start); else start();
 })();

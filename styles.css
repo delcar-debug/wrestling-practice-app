@@ -275,3 +275,45 @@ body:not(.whiteboard-tv) #whiteboardPage:not(.active){display:none!important}
  .home-hero,.home-panels{grid-template-columns:1fr}.home-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.home-page{padding:16px}.practice-timeline-card{padding:15px!important}
 }
 @media(max-width:520px){.home-grid{grid-template-columns:1fr 1fr}.home-quick-actions{grid-template-columns:1fr}.home-identity{padding:22px}.timeline-heading{display:block}.timeline-range{margin-top:8px}}
+
+/* ===== Compact single-line nav tabs ===== */
+.page-nav{flex-wrap:nowrap;overflow-x:auto;gap:5px;scrollbar-width:thin}
+.page-nav button{padding:7px 10px;font-size:.76rem;font-weight:800;white-space:nowrap;flex:0 0 auto}
+
+/* ===== Header search trigger ===== */
+.header{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.cmdk-trigger{background:rgba(255,255,255,.16);color:#fff;border:1px solid rgba(255,255,255,.35);border-radius:10px;padding:9px 12px;font-weight:800;font-size:.82rem;display:flex;align-items:center;gap:8px;white-space:nowrap}
+.cmdk-trigger:hover{background:rgba(255,255,255,.26)}
+.cmdk-trigger kbd{background:rgba(255,255,255,.22);border-radius:5px;padding:2px 6px;font-size:.72rem;font-family:inherit}
+.shared-practice-view .cmdk-trigger{display:none}
+
+/* ===== Clickable recent practices ===== */
+.home-recent-row[data-archive-id]{cursor:pointer;transition:background .12s ease;border-radius:10px}
+.home-recent-row[data-archive-id]:hover{background:#f8fafc}
+
+/* ===== Command palette (Ctrl+K universal search) ===== */
+.cmdk-modal{width:min(620px,100%);max-height:min(70vh,560px);display:flex;flex-direction:column;padding:0;overflow:hidden}
+.cmdk-input-row{padding:14px 16px;border-bottom:1px solid var(--line)}
+.cmdk-input-row input{width:100%;border:1px solid var(--line);border-radius:10px;padding:12px 14px;font-size:1rem}
+.cmdk-results{overflow-y:auto;padding:8px}
+.cmdk-group-label{font-size:.7rem;text-transform:uppercase;letter-spacing:.06em;font-weight:850;color:var(--muted);padding:10px 10px 4px}
+.cmdk-item{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:11px 12px;border-radius:10px;cursor:pointer}
+.cmdk-item strong{font-weight:800}
+.cmdk-item span.cmdk-sub{display:block;font-size:.78rem;color:var(--muted);font-weight:400}
+.cmdk-item .cmdk-tag{font-size:.68rem;font-weight:850;text-transform:uppercase;color:var(--maroon);flex:0 0 auto}
+.cmdk-item.active{background:#f1dfe3}
+.cmdk-empty{padding:28px 16px;text-align:center;color:var(--muted)}
+.cmdk-hint{padding:9px 16px;border-top:1px solid var(--line);font-size:.72rem;color:var(--muted);display:flex;gap:14px}
+.cmdk-hint kbd{background:#f1f2f5;border-radius:5px;padding:2px 6px}
+
+/* ===== Templates ===== */
+.template-save-row{display:grid;grid-template-columns:1fr auto;gap:8px;margin-bottom:14px}
+.template-save-row input{width:100%;border:1px solid var(--line);border-radius:10px;padding:11px}
+.template-list{display:grid;gap:9px;max-height:340px;overflow-y:auto;margin-bottom:14px}
+.template-card{border:1px solid var(--line);border-radius:12px;padding:11px 12px;display:flex;justify-content:space-between;align-items:center;gap:10px}
+.template-card-name{font-weight:850}
+.template-card-meta{font-size:.78rem;color:var(--muted);margin-top:2px}
+.template-card-actions{display:flex;gap:6px;flex:0 0 auto}
+.template-card-actions button{padding:7px 10px;font-size:.78rem}
+.template-empty{border:1px dashed var(--line);border-radius:10px;padding:18px;text-align:center;color:var(--muted)}
+#templatesBtn{margin-top:8px;width:100%}

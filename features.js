@@ -236,7 +236,7 @@
  function panel(id,coach=false){const sec=document.createElement('section');sec.id=id;sec.className='practice-inbox-panel'+(coach?' coach-inbox-panel':'');sec.innerHTML=`<div class="practice-inbox-head"><h2>Practice Inbox</h2><span class="practice-inbox-count"></span></div><div class="practice-inbox-form"><input class="inbox-work" type="text" placeholder="What should we work on?"><input class="inbox-by" type="text" placeholder="Added by"><button class="primary inbox-add" type="button">Add</button></div><div class="practice-inbox-list"></div>${coach?'':'<button class="secondary inbox-open-full" type="button" style="margin-top:8px;width:100%">Open full inbox</button>'}`;return sec}
  function ensure(){
    document.getElementById('nextPracticeNotesBuilder')?.remove();document.getElementById('nextPracticeNotesCoach')?.remove();document.getElementById('builderPlanningInbox')?.remove();
-   const bh=document.querySelector('#builderPage .builder-section-head');if(bh&&!document.getElementById('builderPracticeInbox'))bh.parentNode.insertBefore(panel('builderPracticeInbox'),bh);
+   const shareActions=document.querySelector('#builderPage .share-actions');if(shareActions&&!document.getElementById('builderPracticeInbox'))shareActions.insertAdjacentElement('afterend',panel('builderPracticeInbox'));
    const timer=document.querySelector('#timerPanel .compact-timer-section');if(timer&&!document.getElementById('coachPracticeInbox'))timer.insertAdjacentElement('afterend',panel('coachPracticeInbox',true));
    const nav=document.getElementById('navQueue');if(nav)nav.textContent='Practice Inbox';
    const qp=document.getElementById('practiceQueuePage');if(qp){

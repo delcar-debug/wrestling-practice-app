@@ -428,11 +428,17 @@ function renderLibrary(){
   
   const overallNotes=[],blockNotes=[];arr.forEach(a=>{if(a.overallCoachNotes?.trim())overallNotes.push({archiveId:a.id,date:archiveDateLabel(a),goal:a.goal||'',context:'Overall practice notes',text:a.overallCoachNotes.trim()});(a.blocks||[]).forEach((b,i)=>{if(b.coachNotes?.trim())blockNotes.push({archiveId:a.id,date:archiveDateLabel(a),goal:a.goal||'',context:`${i+1}. ${b.name} · ${categoryInfo(b.category).label}`,text:b.coachNotes.trim()})})});const allNotes=[...overallNotes,...blockNotes],noteCards=notes=>notes.map(n=>`<article class="all-note-card"><div class="all-note-top"><div><div class="all-note-date">${esc(n.date)}</div><div class="all-note-context">${esc(n.context)}${n.goal?` · Goal: ${esc(n.goal)}`:''}</div></div></div><div class="all-note-text">${esc(n.text)}</div><button class="secondary all-note-open" data-id="${n.archiveId}">View Practice</button></article>`).join('');if($('allNotesCount')) $('allNotesCount').textContent=`${allNotes.length} note${allNotes.length===1?'':'s'}`;if($('overallNotesCount')) $('overallNotesCount').textContent=`${overallNotes.length} note${overallNotes.length===1?'':'s'}`;if($('blockNotesCount')) $('blockNotesCount').textContent=`${blockNotes.length} note${blockNotes.length===1?'':'s'}`;$('overallNotesList').innerHTML=overallNotes.length?noteCards(overallNotes):'<div class="all-notes-empty">No archived overall notes match the current search or date filter.</div>';$('blockNotesList').innerHTML=blockNotes.length?noteCards(blockNotes):'<div class="all-notes-empty">No archived block notes match the current search or date filter.</div>';
   const openMonths=new Set([...document.querySelectorAll('.archive-month[open]')].map(x=>x.dataset.month));
-  const archiveCardHtml=a=>{const archiveCategoryTotals=Object.fromEntries(CATEGORIES.map(c=>[c.id,0]));if(a.categoryTotals&&typeof a.categoryTotals==='object')CATEGORIES.forEach(c=>archiveCategoryTotals[c.id]=Number(a.categoryTotals[c.id]||0));else(a.blocks||[]).forEach(b=>archiveCategoryTotals[categoryInfo(b.category).id]+=Number(b.minutes)||0);const badges=CATEGORIES.filter(c=>archiveCategoryTotals[c.id]>0).slice(0,6).map(c=>`<span class="category-badge ${c.className}">${c.label}: ${archiveCategoryTotals[c.id]}m</span>`).join('');const notesCount=(a.overallCoachNotes?.trim()?1:0)+(a.blocks||[]).filter(b=>b.coachNotes?.trim()).length;return `<article class="archive-card" data-archive-id="${a.id}"><div class="archive-head"><div><div class="archive-title">${archiveDateLabel(a)}</div><div class="archive-meta">${a.plannedMinutes??a.totalMinutes??a.blocks?.reduce((s,b)=>s+(+b.minutes||0),0)??0} min · ${(a.blocks||[]).length} blocks · ${notesCount} note${notesCount===1?'':'s'}</div><div class="archive-goal"><strong>Goal:</strong> ${esc(a.goal||'No goal entered')}</div><div class="archive-badges">${badges}</div></div><div class="archive-actions"><button class="secondary archive-view" data-id="${a.id}">View</button><button class="secondary archive-load" data-id="${a.id}">Load</button><button class="secondary archive-copy" data-id="${a.id}">Duplicate</button><button class="danger archive-delete" data-id="${a.id}">Delete</button></div></div><div class="archive-details">${a.overallCoachNotes?`<div class="archive-overall"><strong>Overall Practice Notes</strong><br>${esc(a.overallCoachNotes)}</div>`:''}${(a.blocks||[]).map((b,i)=>`<div class="archive-block"><div class="archive-block-title">${i+1}. ${esc(b.name)}</div><div class="archive-block-meta">${categoryInfo(b.category).label} · ${b.minutes} min</div>${b.details?`<div class="archive-note"><strong>Plan:</strong> ${esc(b.details)}</div>`:''}${b.coachNotes?`<div class="archive-note"><strong>Practice notes:</strong> ${esc(b.coachNotes)}</div>`:''}</div>`).join('')}</div></article>`};
+  const archiveCardHtml=a=>{const archiveCategoryTotals=Object.fromEntries(CATEGORIES.map(c=>[c.id,0]));if(a.categoryTotals&&typeof a.categoryTotals==='object')CATEGORIES.forEach(c=>archiveCategoryTotals[c.id]=Number(a.categoryTotals[c.id]||0));else(a.blocks||[]).forEach(b=>archiveCategoryTotals[categoryInfo(b.category).id]+=Number(b.minutes)||0);const badges=CATEGORIES.filter(c=>archiveCategoryTotals[c.id]>0).slice(0,6).map(c=>`<span class="category-badge ${c.className}">${c.label}: ${archiveCategoryTotals[c.id]}m</span>`).join('');const notesCount=(a.overallCoachNotes?.trim()?1:0)+(a.blocks||[]).filter(b=>b.coachNotes?.trim()).length;return `<article class="archive-card" data-archive-id="${a.id}"><div class="archive-head"><div><div class="archive-title">${archiveDateLabel(a)}</div><div class="archive-meta">${a.plannedMinutes??a.totalMinutes??a.blocks?.reduce((s,b)=>s+(+b.minutes||0),0)??0} min · ${(a.blocks||[]).length} blocks · ${notesCount} note${notesCount===1?'':'s'}</div><div class="archive-goal"><strong>Goal:</strong> ${esc(a.goal||'No goal entered')}</div><div class="archive-badges">${badges}</div></div><div class="archive-actions"><button class="secondary archive-view" data-id="${a.id}">View</button><button class="secondary archive-load" data-id="${a.id}">Load</button><button class="secondary archive-copy" data-id="${a.id}">Duplicate</button><button class="secondary archive-link" data-id="${a.id}">Copy Link</button><button class="danger archive-delete" data-id="${a.id}">Delete</button></div></div><div class="archive-details">${a.overallCoachNotes?`<div class="archive-overall"><strong>Overall Practice Notes</strong><br>${esc(a.overallCoachNotes)}</div>`:''}${(a.blocks||[]).map((b,i)=>`<div class="archive-block"><div class="archive-block-title">${i+1}. ${esc(b.name)}</div><div class="archive-block-meta">${categoryInfo(b.category).label} · ${b.minutes} min</div>${b.details?`<div class="archive-note"><strong>Plan:</strong> ${esc(b.details)}</div>`:''}${b.coachNotes?`<div class="archive-note"><strong>Practice notes:</strong> ${esc(b.coachNotes)}</div>`:''}</div>`).join('')}</div></article>`};
   if(arr.length){const groups=new Map();arr.forEach(a=>{const m=archiveMonthInfo(a);if(!groups.has(m.key))groups.set(m.key,{label:m.label,items:[]});groups.get(m.key).items.push(a)});$('libraryList').innerHTML=[...groups.entries()].map(([key,g],i)=>`<details class="archive-month" data-month="${key}" ${(openMonths.has(key)||(!openMonths.size&&i===0))?'open':''}><summary><span class="archive-month-title"><span>${esc(g.label)}</span><span class="archive-month-count">${g.items.length} practice${g.items.length===1?'':'s'}</span></span></summary><div class="archive-month-list">${g.items.map(archiveCardHtml).join('')}</div></details>`).join('')}else $('libraryList').innerHTML='<div class="empty-library">No archived practices yet. Open a dated practice in Coach Mode to begin automatic archiving.</div>';
   document.querySelectorAll('.all-note-open').forEach(b=>b.onclick=()=>{const card=document.querySelector(`.archive-card[data-archive-id="${b.dataset.id}"]`);if(card){const month=card.closest('.archive-month');if(month)month.open=true;card.classList.add('open');card.scrollIntoView({behavior:'smooth',block:'center'})}});
   document.querySelectorAll('.archive-view').forEach(b=>b.onclick=()=>b.closest('.archive-card').classList.toggle('open'));
   document.querySelectorAll('.archive-load').forEach(b=>b.onclick=()=>loadArchive(b.dataset.id,false));document.querySelectorAll('.archive-copy').forEach(b=>b.onclick=()=>loadArchive(b.dataset.id,true));document.querySelectorAll('.archive-delete').forEach(b=>b.onclick=()=>deleteArchive(b.dataset.id));
+  document.querySelectorAll('.archive-link').forEach(b=>b.onclick=async()=>{
+    if(typeof window.buildShareUrlForArchiveId!=='function')return;
+    const link=window.buildShareUrlForArchiveId(b.dataset.id);
+    try{await navigator.clipboard.writeText(link)}catch{const t=document.createElement('textarea');t.value=link;document.body.appendChild(t);t.select();document.execCommand('copy');t.remove()}
+    const original=b.textContent;b.textContent='Copied!';setTimeout(()=>{b.textContent=original},1400);
+  });
 }
 function loadArchive(id,duplicate){const a=state.archives.find(x=>x.id===id);if(!a)return;state.blocks=(a.blocks||[]).map(b=>({...b,id:b.id||crypto.randomUUID(),completionStatus:b.completionStatus||'not_completed',actualMinutes:Number.isFinite(Number(b.actualMinutes))?Number(b.actualMinutes):(Number(b.minutes)||1)}));state.overallCoachNotes=a.overallCoachNotes||'';el.practiceDate.value=duplicate?'':a.date||'';el.startTime.value=a.start||'15:30';el.practiceLength.value=a.length||a.plannedMinutes||a.totalMinutes||90;el.practiceGoal.value=a.goal||'';if(el.overallCoachNotes)el.overallCoachNotes.value=state.overallCoachNotes;render();showAppPage('builder');alert(duplicate?'Practice copied into Practice Builder.':'Archived practice loaded into Practice Builder.')}
 function deleteArchive(id){const a=state.archives.find(x=>x.id===id);if(!a||!confirm(`Delete the archived practice from ${archiveDateLabel(a)}?`))return;state.archives=state.archives.filter(x=>x.id!==id);localStorage.setItem('wpp-practice-library',JSON.stringify(state.archives));renderLibrary()}
@@ -613,12 +619,37 @@ $('dataTabDate').onclick=()=>setDataView('date');$('dataTabActive').onclick=()=>
     goal:el.practiceGoal?.value||'',
     blocks:(state.blocks||[]).map(({name,minutes,details,category})=>({name,minutes:Number(minutes)||0,details:details||'',category:category||'other'}))
   });
-  const makeShareUrl=()=>{
+  const SHARED_LINKS_KEY='wpp-shared-links';
+  const SHARED_LINKS_MAX=300;
+  const loadSharedLinks=()=>{try{const v=JSON.parse(localStorage.getItem(SHARED_LINKS_KEY)||'{}');return v&&typeof v==='object'?v:{}}catch{return {}}};
+  const saveSharedLink=(id,payload)=>{
+    const store=loadSharedLinks();
+    store[id]={payload,createdAt:Date.now()};
+    const entries=Object.entries(store).sort((a,b)=>(b[1].createdAt||0)-(a[1].createdAt||0));
+    const trimmed=Object.fromEntries(entries.slice(0,SHARED_LINKS_MAX));
+    localStorage.setItem(SHARED_LINKS_KEY,JSON.stringify(trimmed));
+  };
+  const genShareId=()=>{
+    const store=loadSharedLinks();
+    let id;
+    do{id=Math.random().toString(36).slice(2,8)}while(store[id]);
+    return id;
+  };
+  window.buildShareUrlForPayload=payload=>{
+    const id=genShareId();
+    saveSharedLink(id,payload);
     const url=new URL(location.href);
     url.search='';
-    url.hash='practice='+utf8ToB64Url(JSON.stringify(practicePayload()));
+    url.hash='p='+id;
     return url.toString();
   };
+  window.buildShareUrlForArchiveId=archiveId=>{
+    const url=new URL(location.href);
+    url.search='';
+    url.hash='p='+archiveId;
+    return url.toString();
+  };
+  const makeShareUrl=()=>window.buildShareUrlForPayload(practicePayload());
   const shareMessage=url=>{
     const dateText=el.practiceDate?.value?new Date(el.practiceDate.value+'T12:00:00').toLocaleDateString(undefined,{weekday:'long',month:'long',day:'numeric'}):'the upcoming practice';
     return `${teamName()} practice plan for ${dateText}:\n${url}`;
@@ -663,10 +694,36 @@ $('dataTabDate').onclick=()=>setDataView('date');$('dataTabActive').onclick=()=>
     location.href=`sms:${separator}body=${encodeURIComponent(shareMessage(url))}`;
     markShared();
   };
+  const payloadFromArchive=a=>({
+    version:1,
+    team:teamName(),
+    slogan:slogan(),
+    date:a.date||a.plannedDate||'',
+    start:a.start||'15:30',
+    length:Number(a.length||a.plannedMinutes||a.totalMinutes)||0,
+    goal:a.goal||'',
+    blocks:(a.blocks||[]).map(b=>({name:b.name||'Practice Block',minutes:Number(b.minutes)||0,details:b.details||'',category:b.category||'other'}))
+  });
+  const resolveSharedPayloadById=id=>{
+    const store=loadSharedLinks();
+    if(store[id])return store[id].payload;
+    const archive=(state.archives||[]).find(a=>a.id===id);
+    if(archive)return payloadFromArchive(archive);
+    return null;
+  };
   const openSharedPractice=()=>{
-    if(!location.hash.startsWith('#practice='))return false;
+    const isShort=location.hash.startsWith('#p=');
+    const isLong=location.hash.startsWith('#practice=');
+    if(!isShort&&!isLong)return false;
     try{
-      const payload=JSON.parse(b64UrlToUtf8(location.hash.slice('#practice='.length)));
+      let payload;
+      if(isShort){
+        const id=location.hash.slice('#p='.length);
+        payload=resolveSharedPayloadById(id);
+        if(!payload){alert('This link only works on the device that created it, or the linked practice has been deleted.');return false}
+      }else{
+        payload=JSON.parse(b64UrlToUtf8(location.hash.slice('#practice='.length)));
+      }
       state.blocks=Array.isArray(payload.blocks)?payload.blocks.map(block=>({id:crypto.randomUUID(),name:block.name||'Practice Block',minutes:Number(block.minutes)||0,details:block.details||'',category:block.category||'other',coachNotes:''})):[];
       if(el.practiceDate)el.practiceDate.value=payload.date||'';
       if(el.startTime)el.startTime.value=payload.start||'15:30';
