@@ -721,17 +721,7 @@
     slogan2: 'Team State Champs',
     activeLabel: 'Active Practice',
     continueBtn: 'Continue Practice',
-    metricPractices: 'Season Practices',
-    metricHours: 'Season Hours',
-    metricToday: 'Planned Today',
-    metricInbox: 'Practice Inbox',
     quickActionsHeader: 'Quick Actions',
-    qaBuilder: 'Build Practice',
-    qaCoach: 'Open Coach Mode',
-    qaTeam: 'Open Team Board',
-    qaWhiteboard: 'Open Whiteboard',
-    qaQueue: 'Practice Inbox',
-    qaData: 'Season Data',
     recentHeader: 'Recent Practices'
   };
   const TEXT_LABELS = {
@@ -740,17 +730,7 @@
     slogan2: 'Slogan 2',
     activeLabel: '"Active Practice" label',
     continueBtn: 'Continue button',
-    metricPractices: 'Metric: Season Practices',
-    metricHours: 'Metric: Season Hours',
-    metricToday: 'Metric: Planned Today',
-    metricInbox: 'Metric: Practice Inbox',
     quickActionsHeader: 'Quick Actions header',
-    qaBuilder: 'Button: Build Practice',
-    qaCoach: 'Button: Open Coach Mode',
-    qaTeam: 'Button: Open Team Board',
-    qaWhiteboard: 'Button: Open Whiteboard',
-    qaQueue: 'Button: Practice Inbox',
-    qaData: 'Button: Season Data',
     recentHeader: 'Recent Practices header'
   };
   const DEFAULT_PRIMARY = '#741d2a';
@@ -818,14 +798,9 @@
       if (slogans[1]) slogans[1].textContent = t.slogan2;
       setText('.home-today-label')(t.activeLabel);
       const contBtn = q('homeContinueBtn'); if (contBtn) contBtn.textContent = t.continueBtn;
-      const metricSpans = home.querySelectorAll('.home-metric span');
-      const metricVals = [t.metricPractices, t.metricHours, t.metricToday, t.metricInbox];
-      metricSpans.forEach((el, i) => { if (metricVals[i] !== undefined) el.textContent = metricVals[i]; });
       const panelHeaders = home.querySelectorAll('.home-panels h2');
       if (panelHeaders[0]) panelHeaders[0].textContent = t.quickActionsHeader;
       if (panelHeaders[1]) panelHeaders[1].textContent = t.recentHeader;
-      const qaMap = { builder: t.qaBuilder, coach: t.qaCoach, team: t.qaTeam, whiteboard: t.qaWhiteboard, queue: t.qaQueue, data: t.qaData };
-      Object.keys(qaMap).forEach(k => { const btn = home.querySelector(`[data-home-action="${k}"]`); if (btn) btn.textContent = qaMap[k]; });
     }
 
     let current = load();
@@ -834,10 +809,10 @@
     const gearBtn = document.createElement('button');
     gearBtn.id = 'homeSettingsBtn';
     gearBtn.type = 'button';
-    gearBtn.className = 'secondary home-settings-btn';
+    gearBtn.className = 'home-settings-btn';
     gearBtn.setAttribute('aria-label', 'Customize team look');
     gearBtn.title = 'Customize team look';
-    gearBtn.textContent = '⚙ Customize';
+    gearBtn.textContent = '⚙';
     const identitySection = home.querySelector('.home-identity');
     if (identitySection) identitySection.appendChild(gearBtn); else home.prepend(gearBtn);
 

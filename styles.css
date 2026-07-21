@@ -497,7 +497,8 @@ body.dash-resizing .dash-resize-handle::after{background:var(--maroon)}
 @media(max-width:420px){.breakdown-pie-wrap{justify-content:center}}
 
 /* ===== Team Look & Home Page Customization ===== */
-.home-settings-btn{margin-top:12px;font-size:.78rem;padding:7px 14px}
+.home-settings-btn{margin-top:8px;font-size:.72rem;line-height:1;padding:3px 6px;border:1px solid transparent;border-radius:6px;background:transparent;color:var(--muted);opacity:.55;cursor:pointer}
+.home-settings-btn:hover{opacity:1;background:#f1f1f3;border-color:var(--line)}
 .brand-settings-modal{width:min(640px,100%);max-height:88vh;overflow-y:auto}
 .brand-section{margin-top:16px;padding-top:14px;border-top:1px solid var(--line)}
 .brand-section:first-of-type{margin-top:10px;padding-top:0;border-top:0}
