@@ -495,3 +495,29 @@ body.dash-resizing .dash-resize-handle::after{background:var(--maroon)}
 .pie-legend-item span{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .pie-legend-item strong{font-weight:850;color:#1f2937}
 @media(max-width:420px){.breakdown-pie-wrap{justify-content:center}}
+
+/* ===== Team Look & Home Page Customization ===== */
+.home-settings-btn{margin-top:12px;font-size:.78rem;padding:7px 14px}
+.brand-settings-modal{width:min(640px,100%);max-height:88vh;overflow-y:auto}
+.brand-section{margin-top:16px;padding-top:14px;border-top:1px solid var(--line)}
+.brand-section:first-of-type{margin-top:10px;padding-top:0;border-top:0}
+.brand-section h3{margin:0 0 10px;font-size:.86rem;text-transform:uppercase;letter-spacing:.02em;color:var(--muted)}
+.brand-settings-modal .field{display:block;font-size:.74rem;font-weight:850;text-transform:uppercase;color:var(--muted);margin-bottom:10px}
+.brand-settings-modal .field input{margin-top:5px}
+.brand-color-row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.color-field input[type="color"]{height:42px;padding:3px;cursor:pointer}
+.logo-preview-row{display:flex;align-items:center;gap:10px;margin-top:4px}
+.logo-preview-row img{width:52px;height:52px;object-fit:contain;border-radius:8px;border:1px solid var(--line);background:#fff}
+.brand-text-grid{display:grid;grid-template-columns:1fr 1fr;gap:4px 14px}
+.brand-text-field{margin-bottom:6px}
+.brand-template-help{margin:0 0 10px;font-size:.8rem;color:var(--muted)}
+.template-save-row{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px}
+.template-save-row input{flex:1;min-width:160px}
+.template-list{display:flex;flex-direction:column;gap:6px}
+.template-row{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:8px 10px;border:1px solid var(--line);border-radius:9px;background:#fafbfc}
+.template-row span{font-weight:800;font-size:.86rem}
+.template-row-actions{display:flex;gap:6px}
+.template-row-actions button{padding:5px 10px;font-size:.74rem}
+.template-empty{font-size:.82rem;color:var(--muted);padding:6px 2px}
+.brand-modal-actions{display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap;margin-top:16px}
+@media(max-width:640px){.brand-text-grid{grid-template-columns:1fr}.brand-color-row{grid-template-columns:1fr}}

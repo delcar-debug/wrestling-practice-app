@@ -708,3 +708,286 @@
   const start = () => wire();
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', start); else start();
 })();
+
+/* ===== Team Look & Home Page Customization ===== */
+(() => {
+  const KEY = 'wpp-brand-settings';
+  const TEMPLATES_KEY = 'wpp-look-templates';
+  const q = id => document.getElementById(id);
+
+  const DEFAULT_TEXT = {
+    eyebrow: 'Championship Standard',
+    slogan1: 'For Her',
+    slogan2: 'Team State Champs',
+    activeLabel: 'Active Practice',
+    continueBtn: 'Continue Practice',
+    metricPractices: 'Season Practices',
+    metricHours: 'Season Hours',
+    metricToday: 'Planned Today',
+    metricInbox: 'Practice Inbox',
+    quickActionsHeader: 'Quick Actions',
+    qaBuilder: 'Build Practice',
+    qaCoach: 'Open Coach Mode',
+    qaTeam: 'Open Team Board',
+    qaWhiteboard: 'Open Whiteboard',
+    qaQueue: 'Practice Inbox',
+    qaData: 'Season Data',
+    recentHeader: 'Recent Practices'
+  };
+  const TEXT_LABELS = {
+    eyebrow: 'Eyebrow tag',
+    slogan1: 'Slogan 1',
+    slogan2: 'Slogan 2',
+    activeLabel: '"Active Practice" label',
+    continueBtn: 'Continue button',
+    metricPractices: 'Metric: Season Practices',
+    metricHours: 'Metric: Season Hours',
+    metricToday: 'Metric: Planned Today',
+    metricInbox: 'Metric: Practice Inbox',
+    quickActionsHeader: 'Quick Actions header',
+    qaBuilder: 'Button: Build Practice',
+    qaCoach: 'Button: Open Coach Mode',
+    qaTeam: 'Button: Open Team Board',
+    qaWhiteboard: 'Button: Open Whiteboard',
+    qaQueue: 'Button: Practice Inbox',
+    qaData: 'Button: Season Data',
+    recentHeader: 'Recent Practices header'
+  };
+  const DEFAULT_PRIMARY = '#741d2a';
+  const DEFAULT_ACCENT = '#7a1f2b';
+
+  function shade(hex, percent) {
+    try {
+      const clean = String(hex || '').replace('#', '');
+      const n = parseInt(clean.length === 3 ? clean.split('').map(c => c + c).join('') : clean, 16);
+      if (Number.isNaN(n)) return hex;
+      let r = (n >> 16) + Math.round(255 * percent);
+      let g = ((n >> 8) & 0xff) + Math.round(255 * percent);
+      let b = (n & 0xff) + Math.round(255 * percent);
+      r = Math.max(0, Math.min(255, r)); g = Math.max(0, Math.min(255, g)); b = Math.max(0, Math.min(255, b));
+      return '#' + (0x1000000 + (r << 16) + (g << 8) + b).toString(16).slice(1);
+    } catch { return hex; }
+  }
+
+  function start() {
+    const home = q('homePage');
+    if (!home || q('homeSettingsBtn')) return false;
+
+    const DEFAULT_LOGO = document.querySelector('.brand img')?.src || '';
+    const DEFAULT_NAME = document.querySelector('.brand h1')?.textContent?.trim() || "Holmen Women's Wrestling";
+
+    const defaults = () => ({ teamName: DEFAULT_NAME, logo: '', primary: DEFAULT_PRIMARY, accent: DEFAULT_ACCENT, text: { ...DEFAULT_TEXT } });
+
+    function load() {
+      try {
+        const raw = localStorage.getItem(KEY);
+        if (!raw) return defaults();
+        const parsed = JSON.parse(raw);
+        if (!parsed || typeof parsed !== 'object') return defaults();
+        return { ...defaults(), ...parsed, text: { ...DEFAULT_TEXT, ...(parsed.text || {}) } };
+      } catch { return defaults(); }
+    }
+    const persist = settings => localStorage.setItem(KEY, JSON.stringify(settings));
+
+    function loadTemplates() {
+      try {
+        const raw = JSON.parse(localStorage.getItem(TEMPLATES_KEY) || '[]');
+        return Array.isArray(raw) ? raw : [];
+      } catch { return []; }
+    }
+    const persistTemplates = list => localStorage.setItem(TEMPLATES_KEY, JSON.stringify(list));
+
+    function apply(settings) {
+      const primary = settings.primary || DEFAULT_PRIMARY;
+      const accent = settings.accent || DEFAULT_ACCENT;
+      document.documentElement.style.setProperty('--maroon', primary);
+      document.documentElement.style.setProperty('--maroon2', shade(primary, -0.25));
+      document.documentElement.style.setProperty('--accent', accent);
+
+      const name = settings.teamName || DEFAULT_NAME;
+      document.querySelectorAll('.brand h1, .dash-brand-title, .team-board-title h2, .home-identity h1').forEach(el => { if (el) el.textContent = name; });
+
+      const logoSrc = settings.logo || DEFAULT_LOGO;
+      if (logoSrc) document.querySelectorAll('.brand img, .dash-brand img').forEach(el => { if (el) el.src = logoSrc; });
+
+      const t = { ...DEFAULT_TEXT, ...(settings.text || {}) };
+      const setText = sel => { const el = home.querySelector(sel); return val => { if (el) el.textContent = val; }; };
+      setText('.home-eyebrow')(t.eyebrow);
+      const slogans = home.querySelectorAll('.home-slogans span');
+      if (slogans[0]) slogans[0].textContent = t.slogan1;
+      if (slogans[1]) slogans[1].textContent = t.slogan2;
+      setText('.home-today-label')(t.activeLabel);
+      const contBtn = q('homeContinueBtn'); if (contBtn) contBtn.textContent = t.continueBtn;
+      const metricSpans = home.querySelectorAll('.home-metric span');
+      const metricVals = [t.metricPractices, t.metricHours, t.metricToday, t.metricInbox];
+      metricSpans.forEach((el, i) => { if (metricVals[i] !== undefined) el.textContent = metricVals[i]; });
+      const panelHeaders = home.querySelectorAll('.home-panels h2');
+      if (panelHeaders[0]) panelHeaders[0].textContent = t.quickActionsHeader;
+      if (panelHeaders[1]) panelHeaders[1].textContent = t.recentHeader;
+      const qaMap = { builder: t.qaBuilder, coach: t.qaCoach, team: t.qaTeam, whiteboard: t.qaWhiteboard, queue: t.qaQueue, data: t.qaData };
+      Object.keys(qaMap).forEach(k => { const btn = home.querySelector(`[data-home-action="${k}"]`); if (btn) btn.textContent = qaMap[k]; });
+    }
+
+    let current = load();
+    apply(current);
+
+    const gearBtn = document.createElement('button');
+    gearBtn.id = 'homeSettingsBtn';
+    gearBtn.type = 'button';
+    gearBtn.className = 'secondary home-settings-btn';
+    gearBtn.setAttribute('aria-label', 'Customize team look');
+    gearBtn.title = 'Customize team look';
+    gearBtn.textContent = '⚙ Customize';
+    const identitySection = home.querySelector('.home-identity');
+    if (identitySection) identitySection.appendChild(gearBtn); else home.prepend(gearBtn);
+
+    const backdrop = document.createElement('div');
+    backdrop.id = 'brandSettingsBackdrop';
+    backdrop.className = 'modal-backdrop';
+    backdrop.setAttribute('aria-hidden', 'true');
+    const textFieldsHtml = Object.keys(DEFAULT_TEXT).map(k => `<label class="field brand-text-field">${TEXT_LABELS[k]}<input id="txt-${k}" maxlength="60" type="text"></label>`).join('');
+    backdrop.innerHTML = `<section aria-label="Customize team look" aria-modal="true" class="block-modal brand-settings-modal" role="dialog">
+      <h2>Customize Team Look</h2>
+      <section class="brand-section">
+        <h3>Team Identity</h3>
+        <label class="field">Team name<input id="brandTeamName" maxlength="60" type="text"></label>
+        <label class="field">Logo<input accept="image/*" id="brandLogoInput" type="file"></label>
+        <div class="logo-preview-row"><img alt="Logo preview" id="brandLogoPreview"><button class="secondary" id="brandLogoResetBtn" type="button">Reset to Default Logo</button></div>
+      </section>
+      <section class="brand-section">
+        <h3>Colors</h3>
+        <div class="brand-color-row">
+          <label class="field color-field">Primary color<input id="brandPrimaryColor" type="color"></label>
+          <label class="field color-field">Accent color<input id="brandAccentColor" type="color"></label>
+        </div>
+      </section>
+      <section class="brand-section">
+        <h3>Home Page Text</h3>
+        <div class="brand-text-grid">${textFieldsHtml}</div>
+      </section>
+      <section class="brand-section">
+        <h3>Look Templates</h3>
+        <p class="brand-template-help">Save the current name, logo, colors, and text as a named look you can switch back to anytime.</p>
+        <div class="template-save-row"><input id="brandTemplateName" maxlength="40" placeholder="Look name (e.g. Home, Away)" type="text"><button class="secondary" id="brandSaveTemplateBtn" type="button">Save Current as Template</button></div>
+        <div class="template-list" id="brandTemplateList"></div>
+      </section>
+      <div class="brand-modal-actions">
+        <button class="secondary" id="brandResetBtn" type="button">Reset to Default</button>
+        <button class="secondary" id="brandCancelBtn" type="button">Cancel</button>
+        <button class="primary" id="brandSaveBtn" type="button">Save</button>
+      </div>
+    </section>`;
+    document.querySelector('.app')?.appendChild(backdrop);
+
+    let draft = null;
+
+    function fillForm(settings) {
+      if (q('brandTeamName')) q('brandTeamName').value = settings.teamName || '';
+      if (q('brandLogoPreview')) q('brandLogoPreview').src = settings.logo || DEFAULT_LOGO;
+      if (q('brandPrimaryColor')) q('brandPrimaryColor').value = settings.primary || DEFAULT_PRIMARY;
+      if (q('brandAccentColor')) q('brandAccentColor').value = settings.accent || DEFAULT_ACCENT;
+      const t = { ...DEFAULT_TEXT, ...(settings.text || {}) };
+      Object.keys(DEFAULT_TEXT).forEach(k => { const el = q('txt-' + k); if (el) el.value = t[k]; });
+    }
+
+    function readForm() {
+      const text = {};
+      Object.keys(DEFAULT_TEXT).forEach(k => { const el = q('txt-' + k); text[k] = el ? el.value : DEFAULT_TEXT[k]; });
+      return {
+        teamName: (q('brandTeamName')?.value || '').trim() || DEFAULT_NAME,
+        logo: (draft && draft.logo) || '',
+        primary: q('brandPrimaryColor')?.value || DEFAULT_PRIMARY,
+        accent: q('brandAccentColor')?.value || DEFAULT_ACCENT,
+        text
+      };
+    }
+
+    function renderTemplates() {
+      const list = loadTemplates();
+      const wrap = q('brandTemplateList');
+      if (!wrap) return;
+      wrap.innerHTML = list.length ? list.map(tpl => `<div class="template-row" data-id="${esc(tpl.id)}"><span>${esc(tpl.name)}</span><div class="template-row-actions"><button class="secondary template-apply-btn" data-id="${esc(tpl.id)}" type="button">Apply</button><button class="secondary template-delete-btn" data-id="${esc(tpl.id)}" type="button">Delete</button></div></div>`).join('') : '<div class="template-empty">No saved looks yet.</div>';
+      wrap.querySelectorAll('.template-apply-btn').forEach(btn => btn.onclick = () => {
+        const tpl = loadTemplates().find(x => x.id === btn.dataset.id);
+        if (!tpl || !tpl.settings) return;
+        draft = { ...defaults(), ...tpl.settings, text: { ...DEFAULT_TEXT, ...(tpl.settings.text || {}) } };
+        fillForm(draft);
+      });
+      wrap.querySelectorAll('.template-delete-btn').forEach(btn => btn.onclick = () => {
+        if (!confirm('Delete this saved look?')) return;
+        persistTemplates(loadTemplates().filter(x => x.id !== btn.dataset.id));
+        renderTemplates();
+      });
+    }
+
+    function openModal() {
+      current = load();
+      draft = { ...current, text: { ...current.text } };
+      fillForm(current);
+      renderTemplates();
+      backdrop.classList.add('open');
+      backdrop.setAttribute('aria-hidden', 'false');
+    }
+    function closeModal() {
+      backdrop.classList.remove('open');
+      backdrop.setAttribute('aria-hidden', 'true');
+    }
+
+    gearBtn.addEventListener('click', openModal);
+    q('brandCancelBtn')?.addEventListener('click', closeModal);
+    backdrop.addEventListener('click', e => { if (e.target === backdrop) closeModal(); });
+
+    q('brandLogoInput')?.addEventListener('change', e => {
+      const file = e.target.files && e.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = () => {
+        draft = draft || {};
+        draft.logo = reader.result;
+        if (q('brandLogoPreview')) q('brandLogoPreview').src = reader.result;
+      };
+      reader.readAsDataURL(file);
+    });
+    q('brandLogoResetBtn')?.addEventListener('click', () => {
+      draft = draft || {};
+      draft.logo = '';
+      if (q('brandLogoPreview')) q('brandLogoPreview').src = DEFAULT_LOGO;
+    });
+
+    q('brandSaveTemplateBtn')?.addEventListener('click', () => {
+      const nameInput = q('brandTemplateName');
+      const name = (nameInput?.value || '').trim();
+      if (!name) { alert('Enter a name for this look before saving.'); return; }
+      const settings = readForm();
+      const list = loadTemplates();
+      list.unshift({ id: 'tpl-' + Date.now() + '-' + Math.random().toString(36).slice(2, 7), name, savedAt: new Date().toISOString(), settings });
+      persistTemplates(list);
+      if (nameInput) nameInput.value = '';
+      renderTemplates();
+    });
+
+    q('brandResetBtn')?.addEventListener('click', () => {
+      if (!confirm('Reset to the default team look? This does not delete your saved templates.')) return;
+      draft = defaults();
+      fillForm(draft);
+    });
+
+    q('brandSaveBtn')?.addEventListener('click', () => {
+      const settings = readForm();
+      current = settings;
+      persist(settings);
+      apply(settings);
+      closeModal();
+    });
+
+    return true;
+  }
+
+  const boot = () => start();
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot); else boot();
+  let brandAttempts = 0;
+  const brandRetry = setInterval(() => {
+    brandAttempts++;
+    if (start() || brandAttempts > 20) clearInterval(brandRetry);
+  }, 150);
+})();
