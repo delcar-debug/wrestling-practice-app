@@ -545,3 +545,17 @@ body.dash-resizing .dash-resize-handle::after{background:var(--maroon)}
 .attendance-remove-btn{background:transparent;border:0;color:var(--muted);font-size:.8rem;cursor:pointer;padding:4px 6px}
 .attendance-remove-btn:hover{color:#dc2626}
 @media(max-width:640px){.attendance-rates{grid-template-columns:1fr}}
+
+/* ===== Attendance Data tab card ===== */
+.attendance-stats-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;margin:12px 0}
+.attendance-metric{background:#f8f9fb;border:1px solid var(--line);border-radius:12px;padding:12px;display:flex;flex-direction:column;gap:4px}
+.attendance-metric span{font-size:.68rem;text-transform:uppercase;letter-spacing:.02em;color:var(--muted);font-weight:800}
+.attendance-metric strong{font-size:1.3rem;color:var(--maroon)}
+.attendance-perfect-count{font-size:.84rem;font-weight:700;margin-bottom:8px}
+.attendance-perfect-names{display:flex;flex-wrap:wrap;gap:6px}
+.attendance-perfect-chip{background:#dcfce7;color:#166534;font-size:.76rem;font-weight:800;padding:4px 10px;border-radius:999px}
+.attendance-table-wrap{overflow-x:auto}
+.attendance-table{width:100%;border-collapse:collapse;font-size:.84rem}
+.attendance-table th{text-align:left;font-size:.68rem;text-transform:uppercase;letter-spacing:.02em;color:var(--muted);padding:6px 8px;border-bottom:1px solid var(--line)}
+.attendance-table td{padding:7px 8px;border-bottom:1px solid #f0f1f4}
+.attendance-table tr:last-child td{border-bottom:0}

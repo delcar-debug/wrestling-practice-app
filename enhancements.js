@@ -64,7 +64,7 @@
   }
   function installDropZone(){
     const target=q('blocks'); if(!target || target.dataset.drillDrop==='1')return; target.dataset.drillDrop='1';
-    const hint=document.createElement('div');hint.className='drill-drop-hint';hint.textContent='Drag drills here from the Drill Library';target.parentNode.insertBefore(hint,target);
+    const hint=document.createElement('div');hint.className='drill-drop-hint';hint.textContent='Drag drills here from the Library';target.parentNode.insertBefore(hint,target);
     ['dragenter','dragover'].forEach(type=>target.addEventListener(type,e=>{if(e.dataTransfer.types.includes('text/drill-id')){e.preventDefault();target.classList.add('drill-drop-active')}}));
     ['dragleave','drop'].forEach(type=>target.addEventListener(type,e=>{target.classList.remove('drill-drop-active')}));
     target.addEventListener('drop',e=>{const id=e.dataTransfer.getData('text/drill-id');if(!id)return;e.preventDefault(); if(typeof addDrillToPractice==='function')addDrillToPractice(id); showAppPage('builder');});
@@ -155,7 +155,7 @@
         <div class="home-metric"><span>Season Practices</span><strong id="homePracticeCount">0</strong></div>
         <div class="home-metric"><span>Season Hours</span><strong id="homeSeasonHours">0</strong></div>
         <div class="home-metric"><span>Planned Today</span><strong id="homeTodayMinutes">0m</strong></div>
-        <div class="home-metric"><span>Practice Inbox</span><strong id="homeInboxCount">0</strong></div>
+        <div class="home-metric"><span>Inbox</span><strong id="homeInboxCount">0</strong></div>
       </div>
       <div class="home-panels">
         <section class="home-panel"><h2>Quick Actions</h2><div class="home-quick-actions">
@@ -163,7 +163,7 @@
           <button class="secondary" data-home-action="coach" type="button">Open Coach Mode</button>
           <button class="secondary" data-home-action="team" type="button">Open Team Board</button>
           <button class="secondary" data-home-action="whiteboard" type="button">Open Whiteboard</button>
-          <button class="secondary" data-home-action="queue" type="button">Practice Inbox</button>
+          <button class="secondary" data-home-action="queue" type="button">Inbox</button>
           <button class="secondary" data-home-action="data" type="button">Season Data</button>
         </div></section>
         <section class="home-panel"><h2>Recent Practices</h2><div id="homeRecentPractices"></div></section>
@@ -386,8 +386,8 @@
     { label: 'Whiteboard', sub: 'TV whiteboard view', page: 'whiteboard' },
     { label: 'Archive', sub: 'Past practices', page: 'library' },
     { label: 'Data', sub: 'Season practice data', page: 'data' },
-    { label: 'Practice Inbox', sub: 'Items queued for a future practice', page: 'queue' },
-    { label: 'Drill Library', sub: 'Saved drills', page: 'drills' }
+    { label: 'Inbox', sub: 'Items queued for a future practice', page: 'queue' },
+    { label: 'Library', sub: 'Saved drills', page: 'drills' }
   ];
 
   function buildModal(){
@@ -994,8 +994,6 @@
   function start() {
     const home = q('homePage');
     if (!home || q('homeAttendancePanel')) return false;
-    const heroWrap = home.querySelector('.home-hero');
-    if (!heroWrap) return false;
 
     const section = document.createElement('section');
     section.id = 'homeAttendancePanel';
@@ -1004,7 +1002,8 @@
       <div class="attendance-alert-slot" id="attendanceAlertSlot"></div>
       <div class="attendance-summary" id="attendanceSummary"></div>
       <div class="attendance-panel-actions"><button class="primary" id="takeAttendanceBtn" type="button">Take Attendance</button></div>`;
-    heroWrap.after(section);
+    const heroWrap = home.querySelector('.home-hero');
+    if (heroWrap) heroWrap.after(section); else home.prepend(section);
 
     const coachTop = document.querySelector('#timerPanel .dash-top');
     const coachPdfBox = document.getElementById('coachPdfReminder');
@@ -1030,33 +1029,91 @@
       coachReminder.hidden = isAttendanceDoneForDate(currentPracticeDate());
     }
 
-    function renderSummary() {
+    function computeAttendanceStats() {
       const roster = loadRoster().filter(a => a.active !== false);
       const attendance = loadAttendance();
+      const dates = Object.keys(attendance).sort();
+      const perAthlete = roster.map(a => {
+        let present = 0, absent = 0;
+        dates.forEach(d => {
+          const rec = attendance[d] ? attendance[d][a.id] : undefined;
+          if (rec === 'present') present++; else if (rec === 'absent') absent++;
+        });
+        const total = present + absent;
+        return { id: a.id, name: a.name, present, absent, total, percent: total ? Math.round((present / total) * 100) : null };
+      });
+      const withRecords = perAthlete.filter(a => a.total > 0);
+      const teamAttendancePercent = withRecords.length ? Math.round(withRecords.reduce((s, a) => s + a.percent, 0) / withRecords.length) : null;
+      const missedTotal = perAthlete.reduce((s, a) => s + a.absent, 0);
+      let perfectDays = 0;
+      dates.forEach(d => {
+        const rec = attendance[d] || {};
+        const vals = Object.values(rec).filter(v => v === 'present' || v === 'absent');
+        if (vals.length && vals.every(v => v === 'present')) perfectDays++;
+      });
+      const perfectDaysPercent = dates.length ? Math.round((perfectDays / dates.length) * 100) : null;
+      const perfectIndividuals = withRecords.filter(a => a.absent === 0);
+      return { perAthlete, totalPractices: dates.length, teamAttendancePercent, missedTotal, perfectDays, perfectDaysPercent, perfectIndividuals };
+    }
+
+    function installDataCard() {
+      const page = document.getElementById('practiceDataPage');
+      if (!page || document.getElementById('attendanceDataCard')) return false;
+      const card = document.createElement('section');
+      card.className = 'data-card season-attendance-card';
+      card.id = 'attendanceDataCard';
+      card.innerHTML = `<h2>Attendance</h2>
+        <div class="attendance-stats-grid" id="attendanceStatsGrid"></div>
+        <details class="trend-chart-block" open><summary><h3>Perfect Attendance</h3></summary><div id="attendancePerfectList"></div></details>
+        <details class="trend-chart-block" open><summary><h3>By Athlete</h3></summary><div class="attendance-table-wrap" id="attendanceByAthlete"></div></details>`;
+      const anchor = page.querySelector('.season-culture-card') || page.querySelector('.season-ratings-card');
+      if (anchor) anchor.after(card); else page.prepend(card);
+      return true;
+    }
+
+    function renderDataCard() {
+      const grid = document.getElementById('attendanceStatsGrid');
+      if (!grid) return;
+      const s = computeAttendanceStats();
+      grid.innerHTML = `<div class="attendance-metric"><span>Team Attendance</span><strong>${s.teamAttendancePercent === null ? '—' : s.teamAttendancePercent + '%'}</strong></div>
+        <div class="attendance-metric"><span>Total Practices</span><strong>${s.totalPractices}</strong></div>
+        <div class="attendance-metric"><span>Missed Practices</span><strong>${s.missedTotal}</strong></div>
+        <div class="attendance-metric"><span>Perfect Attendance Days</span><strong>${s.perfectDays}${s.perfectDaysPercent === null ? '' : ' (' + s.perfectDaysPercent + '%)'}</strong></div>`;
+
+      const perfectWrap = document.getElementById('attendancePerfectList');
+      if (perfectWrap) {
+        perfectWrap.innerHTML = s.perfectIndividuals.length
+          ? `<div class="attendance-perfect-count">${s.perfectIndividuals.length} athlete${s.perfectIndividuals.length === 1 ? '' : 's'} with perfect attendance</div><div class="attendance-perfect-names">${s.perfectIndividuals.map(a => `<span class="attendance-perfect-chip">${esc(a.name)}</span>`).join('')}</div>`
+          : '<div class="attendance-empty">No one has perfect attendance yet.</div>';
+      }
+
+      const tableWrap = document.getElementById('attendanceByAthlete');
+      if (tableWrap) {
+        const rows = s.perAthlete.slice().sort((a, b) => (b.percent ?? -1) - (a.percent ?? -1) || (a.name || '').localeCompare(b.name || ''));
+        tableWrap.innerHTML = rows.length
+          ? `<table class="attendance-table"><thead><tr><th>Athlete</th><th>Present</th><th>Absent</th><th>Percent</th></tr></thead><tbody>${rows.map(a => `<tr><td>${esc(a.name)}</td><td>${a.present}</td><td>${a.absent}</td><td>${a.percent === null ? '—' : a.percent + '%'}</td></tr>`).join('')}</tbody></table>`
+          : '<div class="attendance-empty">No athletes on the roster yet.</div>';
+      }
+    }
+
+    function renderSummary() {
+      const roster = loadRoster().filter(a => a.active !== false);
       const wrap = q('attendanceSummary');
       if (!wrap) return;
       if (!roster.length) {
         wrap.innerHTML = '<div class="attendance-empty">No athletes yet. Take attendance to build your roster.</div>';
         return;
       }
-      const dates = Object.keys(attendance).sort();
-      const lastDate = dates[dates.length - 1];
-      let lastLine = '<div class="attendance-empty">No attendance taken yet.</div>';
-      if (lastDate) {
-        const rec = attendance[lastDate] || {};
-        const presentCount = Object.values(rec).filter(v => v === 'present').length;
-        const totalCount = Object.values(rec).filter(v => v === 'present' || v === 'absent').length;
-        lastLine = `<div class="attendance-stat-row"><span>Last practice · ${esc(formatDate(lastDate))}</span><strong>${presentCount}/${totalCount} present</strong></div>`;
-      }
-      const rateRows = roster.slice().sort((a, b) => (a.name || '').localeCompare(b.name || '')).map(a => {
-        const rate = attendanceRate(a.id, attendance);
-        return `<div class="attendance-rate-row"><span>${esc(a.name)}</span><strong>${rate === null ? '—' : rate + '%'}</strong></div>`;
-      }).join('');
-      wrap.innerHTML = lastLine + `<div class="attendance-rates">${rateRows}</div>`;
+      const date = currentPracticeDate();
+      const taken = isAttendanceDoneForDate(date);
+      wrap.innerHTML = `<div class="attendance-stat-row"><span>Athletes on roster</span><strong>${roster.length}</strong></div>
+        <div class="attendance-stat-row"><span>${esc(formatDate(date))}</span><strong>${taken ? 'Attendance taken' : 'Not taken yet'}</strong></div>`;
     }
     renderSummary();
     renderAlert();
     renderCoachReminder();
+    installDataCard();
+    renderDataCard();
 
     const backdrop = document.createElement('div');
     backdrop.id = 'attendanceBackdrop';
@@ -1116,6 +1173,8 @@
         if (idx >= 0) { roster[idx].active = false; saveRoster(roster); }
         delete draftStatuses[btn.dataset.id];
         renderList();
+        renderSummary();
+        renderDataCard();
       }));
     }
 
@@ -1161,6 +1220,9 @@
       attendance[date] = { ...draftStatuses };
       saveAttendance(attendance);
       renderSummary();
+      renderAlert();
+      renderCoachReminder();
+      renderDataCard();
       closeModal();
     });
 
