@@ -946,3 +946,198 @@
     if (start() || brandAttempts > 20) clearInterval(brandRetry);
   }, 150);
 })();
+
+/* ===== Attendance Tracker ===== */
+(() => {
+  const ROSTER_KEY = 'wpp-roster';
+  const ATTENDANCE_KEY = 'wpp-attendance';
+  const q = id => document.getElementById(id);
+
+  function loadRoster() {
+    try { const raw = JSON.parse(localStorage.getItem(ROSTER_KEY) || '[]'); return Array.isArray(raw) ? raw : []; } catch { return []; }
+  }
+  const saveRoster = list => localStorage.setItem(ROSTER_KEY, JSON.stringify(list));
+  function loadAttendance() {
+    try { const raw = JSON.parse(localStorage.getItem(ATTENDANCE_KEY) || '{}'); return (raw && typeof raw === 'object' && !Array.isArray(raw)) ? raw : {}; } catch { return {}; }
+  }
+  const saveAttendance = obj => localStorage.setItem(ATTENDANCE_KEY, JSON.stringify(obj));
+
+  function todayStr() {
+    const d = new Date();
+    return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+  }
+  function formatDate(dateStr) {
+    try {
+      const d = new Date(dateStr + 'T12:00:00');
+      if (Number.isNaN(d.getTime())) return dateStr;
+      return d.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' });
+    } catch { return dateStr; }
+  }
+  function attendanceRate(athleteId, attendance) {
+    let present = 0, total = 0;
+    Object.keys(attendance).forEach(date => {
+      const rec = attendance[date] && attendance[date][athleteId];
+      if (rec === 'present' || rec === 'absent') { total++; if (rec === 'present') present++; }
+    });
+    return total ? Math.round((present / total) * 100) : null;
+  }
+
+  function start() {
+    const home = q('homePage');
+    if (!home || q('homeAttendancePanel')) return false;
+    const panelsWrap = home.querySelector('.home-panels');
+    if (!panelsWrap) return false;
+
+    const section = document.createElement('section');
+    section.id = 'homeAttendancePanel';
+    section.className = 'home-panel home-attendance-panel';
+    section.innerHTML = `<h2>Attendance</h2>
+      <div class="attendance-summary" id="attendanceSummary"></div>
+      <div class="attendance-panel-actions"><button class="primary" id="takeAttendanceBtn" type="button">Take Attendance</button></div>`;
+    panelsWrap.appendChild(section);
+
+    function renderSummary() {
+      const roster = loadRoster().filter(a => a.active !== false);
+      const attendance = loadAttendance();
+      const wrap = q('attendanceSummary');
+      if (!wrap) return;
+      if (!roster.length) {
+        wrap.innerHTML = '<div class="attendance-empty">No athletes yet. Take attendance to build your roster.</div>';
+        return;
+      }
+      const dates = Object.keys(attendance).sort();
+      const lastDate = dates[dates.length - 1];
+      let lastLine = '<div class="attendance-empty">No attendance taken yet.</div>';
+      if (lastDate) {
+        const rec = attendance[lastDate] || {};
+        const presentCount = Object.values(rec).filter(v => v === 'present').length;
+        const totalCount = Object.values(rec).filter(v => v === 'present' || v === 'absent').length;
+        lastLine = `<div class="attendance-stat-row"><span>Last practice · ${esc(formatDate(lastDate))}</span><strong>${presentCount}/${totalCount} present</strong></div>`;
+      }
+      const rateRows = roster.slice().sort((a, b) => (a.name || '').localeCompare(b.name || '')).map(a => {
+        const rate = attendanceRate(a.id, attendance);
+        return `<div class="attendance-rate-row"><span>${esc(a.name)}</span><strong>${rate === null ? '—' : rate + '%'}</strong></div>`;
+      }).join('');
+      wrap.innerHTML = lastLine + `<div class="attendance-rates">${rateRows}</div>`;
+    }
+    renderSummary();
+
+    const backdrop = document.createElement('div');
+    backdrop.id = 'attendanceBackdrop';
+    backdrop.className = 'modal-backdrop';
+    backdrop.setAttribute('aria-hidden', 'true');
+    backdrop.innerHTML = `<section aria-label="Take Attendance" aria-modal="true" class="block-modal attendance-modal" role="dialog">
+      <h2>Take Attendance</h2>
+      <label class="field">Practice date<input id="attendanceDate" type="date"></label>
+      <div class="attendance-add-row">
+        <input id="attendanceNewName" maxlength="60" placeholder="Add athlete name" type="text">
+        <button class="secondary" id="attendanceAddBtn" type="button">Add</button>
+      </div>
+      <div class="attendance-list" id="attendanceList"></div>
+      <div class="brand-modal-actions">
+        <button class="secondary" id="attendanceCancelBtn" type="button">Cancel</button>
+        <button class="primary" id="attendanceSaveBtn" type="button">Save Attendance</button>
+      </div>
+    </section>`;
+    document.querySelector('.app')?.appendChild(backdrop);
+
+    let draftStatuses = {};
+
+    function loadDraftForDate(date) {
+      const attendance = loadAttendance();
+      const existing = attendance[date];
+      if (existing) return { ...existing };
+      const roster = loadRoster().filter(a => a.active !== false);
+      const draft = {};
+      roster.forEach(a => { draft[a.id] = 'present'; });
+      return draft;
+    }
+
+    function renderList() {
+      const roster = loadRoster().filter(a => a.active !== false).sort((a, b) => (a.name || '').localeCompare(b.name || ''));
+      const wrap = q('attendanceList');
+      if (!wrap) return;
+      wrap.innerHTML = roster.length ? roster.map(a => {
+        const status = draftStatuses[a.id] || '';
+        return `<div class="attendance-row" data-id="${esc(a.id)}">
+          <span class="attendance-name">${esc(a.name)}</span>
+          <div class="attendance-toggle">
+            <button class="attendance-btn present-btn${status === 'present' ? ' active' : ''}" data-id="${esc(a.id)}" data-status="present" type="button">Present</button>
+            <button class="attendance-btn absent-btn${status === 'absent' ? ' active' : ''}" data-id="${esc(a.id)}" data-status="absent" type="button">Absent</button>
+            <button class="attendance-remove-btn" data-id="${esc(a.id)}" title="Remove from roster" type="button">✕</button>
+          </div>
+        </div>`;
+      }).join('') : '<div class="attendance-empty">No athletes on the roster yet. Add one above.</div>';
+
+      wrap.querySelectorAll('.attendance-btn').forEach(btn => btn.addEventListener('click', () => {
+        draftStatuses[btn.dataset.id] = btn.dataset.status;
+        renderList();
+      }));
+      wrap.querySelectorAll('.attendance-remove-btn').forEach(btn => btn.addEventListener('click', () => {
+        if (!confirm('Remove this athlete from the roster? Past attendance history is kept.')) return;
+        const roster = loadRoster();
+        const idx = roster.findIndex(a => a.id === btn.dataset.id);
+        if (idx >= 0) { roster[idx].active = false; saveRoster(roster); }
+        delete draftStatuses[btn.dataset.id];
+        renderList();
+      }));
+    }
+
+    function openModal() {
+      const dateInput = q('attendanceDate');
+      if (!dateInput.value) dateInput.value = todayStr();
+      draftStatuses = loadDraftForDate(dateInput.value);
+      renderList();
+      backdrop.classList.add('open');
+      backdrop.setAttribute('aria-hidden', 'false');
+    }
+    function closeModal() {
+      backdrop.classList.remove('open');
+      backdrop.setAttribute('aria-hidden', 'true');
+    }
+
+    q('takeAttendanceBtn').addEventListener('click', () => {
+      q('attendanceDate').value = todayStr();
+      openModal();
+    });
+    q('attendanceCancelBtn').addEventListener('click', closeModal);
+    backdrop.addEventListener('click', e => { if (e.target === backdrop) closeModal(); });
+    q('attendanceDate').addEventListener('change', () => {
+      draftStatuses = loadDraftForDate(q('attendanceDate').value || todayStr());
+      renderList();
+    });
+
+    q('attendanceAddBtn').addEventListener('click', () => {
+      const input = q('attendanceNewName');
+      const name = (input.value || '').trim();
+      if (!name) return;
+      const roster = loadRoster();
+      const id = 'ath-' + Date.now() + '-' + Math.random().toString(36).slice(2, 7);
+      roster.push({ id, name, active: true, addedAt: new Date().toISOString() });
+      saveRoster(roster);
+      draftStatuses[id] = 'present';
+      input.value = '';
+      renderList();
+    });
+    q('attendanceNewName').addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); q('attendanceAddBtn').click(); } });
+
+    q('attendanceSaveBtn').addEventListener('click', () => {
+      const date = q('attendanceDate').value || todayStr();
+      const attendance = loadAttendance();
+      attendance[date] = { ...draftStatuses };
+      saveAttendance(attendance);
+      renderSummary();
+      closeModal();
+    });
+
+    return true;
+  }
+
+  const boot = () => start();
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot); else boot();
+  let attendanceAttempts = 0;
+  const attendanceRetry = setInterval(() => {
+    attendanceAttempts++;
+    if (start() || attendanceAttempts > 20) clearInterval(attendanceRetry);
+  }, 150);
+})();

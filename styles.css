@@ -521,3 +521,26 @@ body.dash-resizing .dash-resize-handle::after{background:var(--maroon)}
 .template-empty{font-size:.82rem;color:var(--muted);padding:6px 2px}
 .brand-modal-actions{display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap;margin-top:16px}
 @media(max-width:640px){.brand-text-grid{grid-template-columns:1fr}}
+
+/* ===== Attendance Tracker ===== */
+.home-attendance-panel{grid-column:1/-1}
+.attendance-panel-actions{margin-top:12px}
+.attendance-summary{display:flex;flex-direction:column;gap:8px}
+.attendance-stat-row{display:flex;align-items:center;justify-content:space-between;padding:8px 10px;background:#f8f9fb;border:1px solid var(--line);border-radius:9px;font-size:.85rem;font-weight:700}
+.attendance-rates{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:6px 14px;margin-top:2px}
+.attendance-rate-row{display:flex;align-items:center;justify-content:space-between;gap:8px;font-size:.82rem;padding:4px 0;border-bottom:1px solid #f0f1f4}
+.attendance-rate-row strong{color:var(--maroon)}
+.attendance-empty{font-size:.82rem;color:var(--muted)}
+.attendance-modal{width:min(520px,100%);max-height:88vh;overflow-y:auto}
+.attendance-add-row{display:flex;gap:8px;margin:12px 0}
+.attendance-add-row input{flex:1}
+.attendance-list{display:flex;flex-direction:column;gap:6px;margin-top:6px;max-height:44vh;overflow-y:auto}
+.attendance-row{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:8px 10px;border:1px solid var(--line);border-radius:9px;background:#fafbfc}
+.attendance-name{font-weight:800;font-size:.88rem}
+.attendance-toggle{display:flex;align-items:center;gap:5px}
+.attendance-btn{padding:5px 11px;font-size:.74rem;font-weight:800;border-radius:999px;border:2px solid transparent;background:#eef0f3;color:#374151;cursor:pointer}
+.attendance-btn.present-btn.active{background:#dcfce7;border-color:#16a34a;color:#166534}
+.attendance-btn.absent-btn.active{background:#fee2e2;border-color:#dc2626;color:#991b1b}
+.attendance-remove-btn{background:transparent;border:0;color:var(--muted);font-size:.8rem;cursor:pointer;padding:4px 6px}
+.attendance-remove-btn:hover{color:#dc2626}
+@media(max-width:640px){.attendance-rates{grid-template-columns:1fr}}
