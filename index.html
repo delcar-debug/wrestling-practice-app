@@ -41,6 +41,10 @@
 <div class="library-list" id="libraryList"></div>
 </section>
 <section class="practice-data-page page-view" id="practiceDataPage">
+<section class="data-card season-ratings-card">
+<h2>Practice Ratings</h2>
+<div class="trend-chart-wrap" id="dataTrendRatingChart"></div>
+</section>
 <section class="data-card season-data-top">
 <h2>Season Planned Data</h2>
 <div class="season-summary">
@@ -56,11 +60,8 @@
 </section>
 <section class="data-card season-trends-card">
 <h2>Season Trends</h2>
-<details class="trend-chart-block" open><summary><h3>Practice Ratings</h3></summary><div class="trend-chart-wrap" id="dataTrendRatingChart"></div></details>
 <details class="trend-chart-block" open><summary><h3>Practice Minutes by Week</h3></summary><div class="trend-chart-wrap" id="dataTrendMinutesChart"></div></details>
-<details class="trend-chart-block" open><summary><h3>Practice Minutes per Practice</h3></summary><div class="trend-chart-wrap" id="dataTrendPerPracticeChart"></div></details>
-<details class="trend-chart-block" open><summary><h3>Category Mix</h3></summary><div class="trend-chart-wrap" id="dataTrendMixChart"></div></details>
-<details class="trend-insights-block" open><summary><h3>Trend Summary</h3></summary><p class="trend-insights-hint">Generated automatically from your archived practices — no internet connection or account required.</p><div class="trend-insights-list" id="dataTrendInsights"></div></details>
+<details class="trend-chart-block" open><summary><h3>Practice Minutes per Practice</h3></summary><div class="trend-chart-wrap" id="dataTrendPerPracticeChart"></div></details><details class="trend-insights-block" open><summary><h3>Trend Summary</h3></summary><p class="trend-insights-hint">Generated automatically from your archived practices — no internet connection or account required.</p><div class="trend-insights-list" id="dataTrendInsights"></div></details>
 </section>
 <div aria-label="Practice data views" class="data-tabs" role="tablist">
 <button class="active" id="dataTabDate" type="button">Date</button>
@@ -148,9 +149,7 @@
 <div class="dash-grid">
 <section class="panel practice-panel mobile-active" data-panel="practice"><details class="qr-box" id="qrBox"><summary class="qr-head"><h2>Practice Plan QR</h2><span class="qr-summary-hint" id="qrSummaryHint">Tap to show</span></summary><div class="qr-body"><div class="qr-canvas-wrap"><canvas height="176" id="practiceQrCanvas" width="176"></canvas></div><div class="qr-link-row"><input class="qr-link-input" id="qrLinkInput" readonly type="text"/><button class="secondary" id="qrCopyBtn" type="button">Copy Link</button></div><div class="qr-hint">Scan to open the current practice plan.</div></div></details><div class="compact-timer-section"><div class="timer-pills-row"><div class="remaining-pill">Left: <strong id="practiceRemaining">00:00</strong></div><div class="remaining-pill" id="practiceEndsPill">Ends: <strong id="practiceEndsAt">--:--</strong></div></div><div class="timer-title" id="timerTitle">Practice</div><div class="timer-clock" id="timerClock">00:00</div><div class="timer-next" id="timerNext"></div><div class="timer-buttons timer-button-stack">
 <div class="timer-button-row"><button class="primary" id="coachStartBtn">Start</button><button class="secondary" id="pauseBtn">Pause</button></div>
-<div class="timer-button-row"><button class="secondary" id="previousBtn">Previous</button><button class="primary" id="nextBtn">Next</button></div>
-<div class="timer-button-row"><button class="secondary" id="addMinuteBtn">+1 min</button><button class="secondary" id="subtractMinuteBtn">−1 min</button></div>
-</div></div><div class="next-practice-notes coach-next-notes" id="nextPracticeNotesCoach">
+<div class="timer-button-row"><button class="secondary" id="previousBtn">Previous</button><button class="primary" id="nextBtn">Next</button></div></div></div><div class="next-practice-notes coach-next-notes" id="nextPracticeNotesCoach">
 <div class="next-notes-head"><div><h2>Next Practice Notes</h2><p>Capture something to address at the next practice.</p></div></div>
 <div class="next-notes-entry"><input id="nextPracticeNoteInput" placeholder="What should we work on next practice?" type="text"/><button class="primary" id="addNextPracticeNote" type="button">Add</button></div>
 <div class="next-notes-list compact" id="nextPracticeNotesCoachList"></div>
