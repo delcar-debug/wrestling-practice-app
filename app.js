@@ -615,35 +615,20 @@ function buildPerPracticeMinutesSvg(){
     ariaLabel:'Practice minutes per practice'
   });
 }
-function buildCategoryMixSvg(weeks){
-  if(!weeks.length)return '<div class="empty-library">Archive practices to see trends.</div>';
-  const activeCats=CATEGORIES.filter(c=>weeks.some(wk=>wk.categoryTotals[c.id]>0));
-  if(!activeCats.length)return '<div class="empty-library">No category data yet.</div>';
-  const w=680,h=210,padL=8,padB=26,padT=8,padR=8;
-  const innerW=w-padL-padR,innerH=h-padT-padB;
-  const barW=innerW/weeks.length;
-  const bars=weeks.map((wk,i)=>{
-    const total=activeCats.reduce((s,c)=>s+wk.categoryTotals[c.id],0);
-    if(!total)return '';
-    let yCursor=padT+innerH;
-    return activeCats.map(c=>{
-      const val=wk.categoryTotals[c.id];if(!val)return '';
-      const segH=(val/total)*innerH;
-      yCursor-=segH;
-      const x=padL+i*barW+barW*0.12,bw=barW*0.76;
-      return `<rect x="${x.toFixed(1)}" y="${yCursor.toFixed(1)}" width="${bw.toFixed(1)}" height="${segH.toFixed(1)}" fill="${CATEGORY_CHART_COLORS[c.id]}"><title>${c.label}: ${val} min</title></rect>`;
-    }).join('');
-  }).join('');
-  const labelStep=Math.max(1,Math.ceil(weeks.length/8));
-  const xLabels=weeks.map((wk,i)=>i%labelStep===0?`<text x="${(padL+i*barW+barW/2).toFixed(1)}" y="${h-8}" text-anchor="middle" class="chart-axis-label">${weekLabelShort(wk.key)}</text>`:'').join('');
-  const legend=activeCats.map(c=>`<span class="chart-legend-item"><i style="background:${CATEGORY_CHART_COLORS[c.id]}"></i>${esc(c.label)}</span>`).join('');
-  return `<svg class="trend-chart" viewBox="0 0 ${w} ${h}" role="img" aria-label="Category mix by week">${bars}${xLabels}</svg><div class="chart-legend">${legend}</div>`;
+function buildCategoryMixPieHtml(){
+  const archives=datedArchivesSorted();
+  if(!archives.length)return '<div class="empty-library">Archive practices to see trends.</div>';
+  const totals=Object.fromEntries(CATEGORIES.map(c=>[c.id,0]));
+  archives.forEach(a=>{const c=archiveCategoryTotals(a);CATEGORIES.forEach(cat=>totals[cat.id]+=Number(c[cat.id]||0))});
+  const grand=Object.values(totals).reduce((a,b)=>a+b,0);
+  const segments=CATEGORIES.filter(c=>totals[c.id]>0).map(c=>({label:c.label,mins:totals[c.id],pct:grand?Math.round(totals[c.id]/grand*100):0,color:pieColorFor(c.id)}));
+  return breakdownPieHtml(segments,'No category data yet.');
 }
 function renderTrendCharts(){
   const weeks=buildSeasonTrendWeeks();
   if($('dataTrendMinutesChart'))$('dataTrendMinutesChart').innerHTML=buildMinutesTrendSvg(weeks);
   if($('dataTrendPerPracticeChart'))$('dataTrendPerPracticeChart').innerHTML=buildPerPracticeMinutesSvg();
-  if($('dataTrendMixChart'))$('dataTrendMixChart').innerHTML=buildCategoryMixSvg(weeks);
+  if($('dataTrendMixChart'))$('dataTrendMixChart').innerHTML=buildCategoryMixPieHtml();
 }
 function pctOf(part,total){return total?Math.round((part/total)*100):0}
 function generateTrendInsights(){

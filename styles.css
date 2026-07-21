@@ -196,11 +196,22 @@ body.detached-tv .team-board-item.current .team-board-details,
 @media(max-width:560px){.spotify-simple .now-playing{grid-template-columns:46px minmax(0,1fr)}.spotify-simple .album-art{width:46px;height:46px}}
 
 /* Coach Mode layout refinements */
+.tools-panel{grid-template-rows:auto auto auto;align-content:start;overflow-y:auto}
 .tools-panel .overall-notes-tools{margin:0;min-height:0;display:flex;flex-direction:column}
-.tools-panel .overall-notes-tools .overall-note-input{flex:1;min-height:220px;max-height:none}
+.tools-panel .overall-notes-tools .overall-note-input{flex:1;min-height:150px;max-height:none}
+.overall-notes-left.overall-notes-tools>summary.overall-notes-head{cursor:pointer;list-style:none;user-select:none;display:flex;align-items:center;justify-content:space-between;gap:8px;margin:0 0 6px}
+.overall-notes-left.overall-notes-tools>summary.overall-notes-head::-webkit-details-marker{display:none}
+.overall-notes-left.overall-notes-tools>summary.overall-notes-head h2{margin:0}
+.overall-notes-left.overall-notes-tools>summary.overall-notes-head::after{content:"▾";color:var(--maroon);font-size:1rem;margin-left:auto;transition:transform .18s ease}
+.overall-notes-left.overall-notes-tools[open]>summary.overall-notes-head::after{transform:rotate(180deg)}
+.overall-notes-left.overall-notes-tools:not([open])>.overall-note-input,.overall-notes-left.overall-notes-tools:not([open])>.note-saved{display:none}
 .match-preset-btn{font-weight:900;border-color:var(--maroon)!important;color:var(--maroon)!important}
 .coach-inbox-panel .practice-inbox-archive{display:none!important}
-@media(max-width:900px){.tools-panel{grid-template-rows:auto auto}}
+.practice-panel .spotify-box{flex:0 0 auto}
+.practice-panel .spotify-box[open]{flex:1 1 auto;min-height:0;display:flex;flex-direction:column}
+.practice-panel .spotify-box[open] .spotify-body{flex:1;min-height:0;overflow-y:auto}
+.practice-panel .spotify-box[open] .results{flex:1 1 auto;min-height:80px}
+@media(max-width:900px){.tools-panel{grid-template-rows:auto auto auto}}
 
 /* V4 interval control layout */
 .interval-buttons-v4 {
@@ -397,7 +408,9 @@ body.dash-resizing .dash-resize-handle::after{background:var(--maroon)}
 #muteSpotifyBtn[aria-pressed="true"]{background:var(--red,#ba2b2b);color:#fff;border-color:var(--red,#ba2b2b)}
 
 /* ===== Whiteboard logo ===== */
-.wb-logo{width:88px;height:88px;object-fit:contain;background:#fff;border-radius:16px;padding:6px;margin:0 auto 14px;display:block}
+.whiteboard-display{position:relative}
+.wb-logo{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:min(72%,680px);max-height:82%;height:auto;object-fit:contain;opacity:.18;pointer-events:none;z-index:0;background:none;border-radius:0;padding:0;margin:0}
+.whiteboard-display>*:not(.wb-logo){position:relative;z-index:1}
 
 /* ===== Timer pills row (practice left + ends at) ===== */
 .timer-pills-row{display:flex;justify-content:center;flex-wrap:wrap;gap:6px}

@@ -189,7 +189,10 @@
     const shortDate = value => {
       if (!value) return 'No date';
       const d = new Date(value + 'T12:00:00');
-      return Number.isNaN(d.getTime()) ? value : d.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' });
+      if (Number.isNaN(d.getTime())) return value;
+      const weekday = d.toLocaleDateString(undefined, { weekday: 'short' });
+      const month = d.toLocaleDateString(undefined, { month: 'short' });
+      return `${weekday}, ${month}. ${d.getDate()}, ${d.getFullYear()}`;
     };
     byId('homeRecentPractices').innerHTML = archives.length ? archives.slice(0,5).map(a => `<div class="home-recent-row" data-archive-id="${safeText(a.id)}"><div><strong>${safeText(a.goal || 'Practice')}</strong><br><span>${safeText(shortDate(a.date))}</span></div><strong>${archiveMinutes(a)}m</strong></div>`).join('') : '<div class="home-empty">Archived practices will appear here.</div>';
     byId('homeRecentPractices').querySelectorAll('.home-recent-row[data-archive-id]').forEach(row => {
@@ -628,14 +631,14 @@
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', start); else start();
 })();
 
-/* ===== Relocate Spotify player under Practice Inbox + remember collapsed state ===== */
+/* ===== Relocate Spotify player to fill the practice column + remember collapsed state ===== */
 (() => {
   function relocateSpotify() {
-    const inbox = document.getElementById('coachPracticeInbox');
-    const spotifyBox = document.querySelector('.tools-panel .spotify-box');
-    if (!inbox || !spotifyBox || spotifyBox.dataset.relocated === '1') return false;
+    const anchor = document.querySelector('#timerPanel .compact-timer-section');
+    const spotifyBox = document.getElementById('spotifyBox');
+    if (!anchor || !spotifyBox || spotifyBox.dataset.relocated === '1') return false;
     spotifyBox.dataset.relocated = '1';
-    inbox.after(spotifyBox);
+    anchor.after(spotifyBox);
     return true;
   }
 
@@ -650,6 +653,7 @@
     const moved = relocateSpotify();
     wireCollapsePersistence(document.getElementById('spotifyBox'), 'wpp-spotify-open');
     wireCollapsePersistence(document.getElementById('coachPracticeInbox'), 'wpp-coach-inbox-open');
+    wireCollapsePersistence(document.getElementById('coachNotesPanel'), 'wpp-coach-notes-open');
     return moved;
   }
 
