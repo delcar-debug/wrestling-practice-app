@@ -982,19 +982,53 @@
     return total ? Math.round((present / total) * 100) : null;
   }
 
+  function currentPracticeDate() {
+    return (document.getElementById('practiceDate')?.value || '').trim() || todayStr();
+  }
+  function isAttendanceDoneForDate(date) {
+    const roster = loadRoster().filter(a => a.active !== false);
+    if (!roster.length) return true;
+    return !!loadAttendance()[date];
+  }
+
   function start() {
     const home = q('homePage');
     if (!home || q('homeAttendancePanel')) return false;
-    const panelsWrap = home.querySelector('.home-panels');
-    if (!panelsWrap) return false;
+    const heroWrap = home.querySelector('.home-hero');
+    if (!heroWrap) return false;
 
     const section = document.createElement('section');
     section.id = 'homeAttendancePanel';
     section.className = 'home-panel home-attendance-panel';
     section.innerHTML = `<h2>Attendance</h2>
+      <div class="attendance-alert-slot" id="attendanceAlertSlot"></div>
       <div class="attendance-summary" id="attendanceSummary"></div>
       <div class="attendance-panel-actions"><button class="primary" id="takeAttendanceBtn" type="button">Take Attendance</button></div>`;
-    panelsWrap.appendChild(section);
+    heroWrap.after(section);
+
+    const coachTop = document.querySelector('#timerPanel .dash-top');
+    const coachPdfBox = document.getElementById('coachPdfReminder');
+    let coachReminder = null;
+    if (coachTop) {
+      coachReminder = document.createElement('div');
+      coachReminder.id = 'coachAttendanceReminder';
+      coachReminder.className = 'coach-pdf-reminder coach-attendance-reminder';
+      coachReminder.hidden = true;
+      coachReminder.innerHTML = `<div class="coach-pdf-copy"><strong>Attendance not taken</strong><span>Mark who's here for this practice.</span></div>
+        <div class="coach-pdf-actions"><button class="primary" id="coachAttendanceBtn" type="button">Take Attendance</button></div>`;
+      if (coachPdfBox) coachPdfBox.after(coachReminder); else coachTop.after(coachReminder);
+    }
+
+    function renderAlert() {
+      const slot = q('attendanceAlertSlot');
+      if (!slot) return;
+      const date = currentPracticeDate();
+      slot.innerHTML = isAttendanceDoneForDate(date) ? '' : `<div class="attendance-alert">Attendance not yet taken for ${esc(formatDate(date))}.</div>`;
+    }
+    function renderCoachReminder() {
+      if (!coachReminder) return;
+      coachReminder.hidden = isAttendanceDoneForDate(currentPracticeDate());
+    }
 
     function renderSummary() {
       const roster = loadRoster().filter(a => a.active !== false);
@@ -1021,6 +1055,8 @@
       wrap.innerHTML = lastLine + `<div class="attendance-rates">${rateRows}</div>`;
     }
     renderSummary();
+    renderAlert();
+    renderCoachReminder();
 
     const backdrop = document.createElement('div');
     backdrop.id = 'attendanceBackdrop';
@@ -1083,9 +1119,9 @@
       }));
     }
 
-    function openModal() {
+    function openModal(date) {
       const dateInput = q('attendanceDate');
-      if (!dateInput.value) dateInput.value = todayStr();
+      dateInput.value = date || dateInput.value || currentPracticeDate();
       draftStatuses = loadDraftForDate(dateInput.value);
       renderList();
       backdrop.classList.add('open');
@@ -1096,10 +1132,8 @@
       backdrop.setAttribute('aria-hidden', 'true');
     }
 
-    q('takeAttendanceBtn').addEventListener('click', () => {
-      q('attendanceDate').value = todayStr();
-      openModal();
-    });
+    q('takeAttendanceBtn').addEventListener('click', () => openModal(currentPracticeDate()));
+    if (q('coachAttendanceBtn')) q('coachAttendanceBtn').addEventListener('click', () => openModal(currentPracticeDate()));
     q('attendanceCancelBtn').addEventListener('click', closeModal);
     backdrop.addEventListener('click', e => { if (e.target === backdrop) closeModal(); });
     q('attendanceDate').addEventListener('change', () => {
@@ -1129,6 +1163,8 @@
       renderSummary();
       closeModal();
     });
+
+    setInterval(() => { renderAlert(); renderCoachReminder(); }, 1500);
 
     return true;
   }

@@ -531,6 +531,7 @@ body.dash-resizing .dash-resize-handle::after{background:var(--maroon)}
 .attendance-rate-row{display:flex;align-items:center;justify-content:space-between;gap:8px;font-size:.82rem;padding:4px 0;border-bottom:1px solid #f0f1f4}
 .attendance-rate-row strong{color:var(--maroon)}
 .attendance-empty{font-size:.82rem;color:var(--muted)}
+.attendance-alert{background:#fff7df;border:1px solid #e6b95d;color:#5f4512;padding:8px 12px;border-radius:9px;font-size:.82rem;font-weight:700;margin-bottom:10px}
 .attendance-modal{width:min(520px,100%);max-height:88vh;overflow-y:auto}
 .attendance-add-row{display:flex;gap:8px;margin:12px 0}
 .attendance-add-row input{flex:1}
