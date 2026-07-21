@@ -237,7 +237,7 @@
  function ensure(){
    document.getElementById('nextPracticeNotesBuilder')?.remove();document.getElementById('nextPracticeNotesCoach')?.remove();document.getElementById('builderPlanningInbox')?.remove();
    const shareActions=document.querySelector('#builderPage .share-actions');if(shareActions&&!document.getElementById('builderPracticeInbox'))shareActions.insertAdjacentElement('afterend',panel('builderPracticeInbox'));
-   const notesBox=document.getElementById('coachNotesPanel')||document.querySelector('.tools-panel .overall-notes-tools');if(notesBox&&!document.getElementById('coachPracticeInbox'))notesBox.insertAdjacentElement('afterend',panel('coachPracticeInbox',true));
+   const timer=document.querySelector('#timerPanel .compact-timer-section');if(timer&&!document.getElementById('coachPracticeInbox'))timer.insertAdjacentElement('afterend',panel('coachPracticeInbox',true));
    const nav=document.getElementById('navQueue');if(nav)nav.textContent='Practice Inbox';
    const qp=document.getElementById('practiceQueuePage');if(qp){
      const legacy=qp.querySelector('.simple-queue-panel');
