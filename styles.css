@@ -320,3 +320,22 @@ body:not(.whiteboard-tv) #whiteboardPage:not(.active){display:none!important}
 .template-card-actions button{padding:7px 10px;font-size:.78rem}
 .template-empty{border:1px dashed var(--line);border-radius:10px;padding:18px;text-align:center;color:var(--muted)}
 #templatesBtn{margin-top:8px;width:100%}
+
+/* ===== Drill Library upgrades ===== */
+.drill-toolbar{display:flex;flex-wrap:wrap;gap:8px;margin:10px 0}
+.drill-toolbar select{border:1px solid #cbd1d8;border-radius:9px;padding:8px 10px;background:#fff;color:#1f2937;font-size:.82rem;flex:1 1 130px;min-width:0}
+.drill-fav-toggle{flex:0 0 auto;padding:8px 12px;font-size:.82rem}
+.drill-fav-toggle.active{background:var(--maroon);color:#fff}
+.drill-card{position:relative}
+.drill-card.is-favorite{border-color:#e8c766;background:#fffaf0}
+.drill-favorite{position:absolute;top:8px;right:8px;background:none;border:0;font-size:1.25rem;line-height:1;padding:2px;color:#c9a227;cursor:pointer}
+.drill-card-body{display:flex;gap:10px}
+.drill-card-main{flex:1;min-width:0;padding-right:22px}
+.drill-thumb{width:76px;height:56px;object-fit:cover;border-radius:9px;flex:0 0 auto;border:1px solid #d9dde3;background:#eef0f4}
+.drill-tags{display:flex;flex-wrap:wrap;gap:5px;margin-top:7px}
+.drill-tag{background:#eef0f4;color:#475467;font-size:.7rem;font-weight:850;padding:3px 8px;border-radius:999px}
+.drill-watch{display:inline-block;margin-top:8px;font-size:.8rem;font-weight:850;color:var(--maroon)}
+.drill-image-row{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.drill-image-label{display:inline-flex;align-items:center;padding:9px 12px;border-radius:9px;cursor:pointer;background:#eef0f4;font-weight:800;font-size:.85rem;color:#344054}
+.drill-image-preview{width:64px;height:48px;object-fit:cover;border-radius:8px;border:1px solid #d9dde3}
+@media(max-width:520px){.drill-card-body{flex-direction:column}.drill-thumb{width:100%;height:120px}.drill-card-main{padding-right:0}}

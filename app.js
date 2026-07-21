@@ -573,19 +573,97 @@ function loadCoachKnowledge(){try{practiceQueue=JSON.parse(localStorage.getItem(
 function saveCoachKnowledge(){localStorage.setItem('wpp-practice-queue',JSON.stringify(practiceQueue));localStorage.setItem('wpp-drill-library',JSON.stringify(drillLibrary));renderQueue();renderDrillLibrary();populateBlockDrillDropdown(el.drillPicker?.value||'')}
 function queueSourceLabel(q){return q.source==='meet'?'Meet note':q.source==='didnt_get_to'?"Didn't get to":q.source==='reflection'?'Reflection':'Coach note'}
 function renderQueue(){const list=$('queueList');if(!list)return;const term=($('queueSearch')?.value||'').toLowerCase();const items=practiceQueue.filter(q=>[q.title,q.addedBy,q.details].join(' ').toLowerCase().includes(term));$('queueCount').textContent=`(${practiceQueue.length})`;list.innerHTML=items.length?items.map(q=>`<article class="queue-card"><div class="queue-card-head"><div><div class="queue-title">${esc(q.title||'Untitled item')}</div><div class="queue-meta">Added by ${esc(q.addedBy||q.athlete||'Coach')} · ${new Date(q.createdAt||Date.now()).toLocaleDateString()}</div></div></div>${q.details?`<div class="queue-note">${esc(q.details)}</div>`:''}<div class="queue-actions"><button class="primary queue-add-practice" data-id="${q.id}" type="button">Add to Practice</button><button class="secondary queue-save-drill" data-id="${q.id}" type="button">Save as Drill</button><button class="danger queue-delete" data-id="${q.id}" type="button">Delete</button></div></article>`).join(''):'<div class="empty-queue">No queue items match.</div>';document.querySelectorAll('.queue-add-practice').forEach(b=>b.onclick=()=>addQueueToPractice(b.dataset.id));document.querySelectorAll('.queue-save-drill').forEach(b=>b.onclick=()=>saveQueueAsDrill(b.dataset.id));document.querySelectorAll('.queue-delete').forEach(b=>b.onclick=()=>{practiceQueue=practiceQueue.filter(q=>q.id!==b.dataset.id);saveCoachKnowledge()})}
-function renderDrillLibrary(){const list=$('drillLibraryList');if(!list)return;const term=($('drillSearch')?.value||'').toLowerCase();const items=drillLibrary.filter(d=>[d.name,d.details,d.tags,categoryInfo(d.category).label].join(' ').toLowerCase().includes(term));$('drillCount').textContent=`(${drillLibrary.length})`;list.innerHTML=items.length?items.map(d=>`<article class="drill-card"><div class="drill-card-head"><div><div class="drill-title">${esc(d.name)}</div><div class="drill-meta">${esc(categoryInfo(d.category).label)} · ${d.minutes} min${d.tags?' · '+esc(d.tags):''}</div></div><div class="drill-meta">Used ${d.timesUsed||0}×</div></div>${d.details?`<div class="drill-details">${esc(d.details)}</div>`:''}<div class="drill-actions"><button class="primary drill-add" data-id="${d.id}" type="button">Add to Practice</button><button class="danger drill-delete" data-id="${d.id}" type="button">Delete</button></div></article>`).join(''):'<div class="empty-queue">No drills saved yet.</div>';document.querySelectorAll('.drill-add').forEach(b=>b.onclick=()=>addDrillToPractice(b.dataset.id));document.querySelectorAll('.drill-delete').forEach(b=>b.onclick=()=>{drillLibrary=drillLibrary.filter(d=>d.id!==b.dataset.id);saveCoachKnowledge()})}
+function tagList(d){return String(d.tags||'').split(',').map(t=>t.trim()).filter(Boolean)}
+function allDrillTags(){const set=new Set();drillLibrary.forEach(d=>tagList(d).forEach(t=>set.add(t)));return [...set].sort((a,b)=>a.localeCompare(b))}
+function populateDrillTagFilter(){const sel=$('drillFilterTag');if(!sel)return;const current=sel.value;const tags=allDrillTags();sel.innerHTML='<option value="">All tags</option>'+tags.map(t=>`<option value="${esc(t)}">${esc(t)}</option>`).join('');if(tags.includes(current))sel.value=current}
+function toggleDrillFavorite(id){const d=drillLibrary.find(x=>x.id===id);if(!d)return;d.favorite=!d.favorite;saveCoachKnowledge()}
+function renderDrillLibrary(){
+  const list=$('drillLibraryList');if(!list)return;
+  populateDrillTagFilter();
+  const term=($('drillSearch')?.value||'').toLowerCase();
+  const catFilter=$('drillFilterCategory')?.value||'';
+  const tagFilter=$('drillFilterTag')?.value||'';
+  const favBtn=$('drillFilterFavorites');
+  const favOnly=favBtn?favBtn.classList.contains('active'):false;
+  const sortMode=$('drillSort')?.value||'newest';
+  let items=drillLibrary.filter(d=>[d.name,d.details,d.tags,categoryInfo(d.category).label].join(' ').toLowerCase().includes(term));
+  if(catFilter)items=items.filter(d=>d.category===catFilter);
+  if(tagFilter)items=items.filter(d=>tagList(d).includes(tagFilter));
+  if(favOnly)items=items.filter(d=>d.favorite);
+  items=[...items].sort((a,b)=>{
+    if(sortMode==='az')return String(a.name||'').localeCompare(String(b.name||''));
+    if(sortMode==='most-used')return (Number(b.timesUsed)||0)-(Number(a.timesUsed)||0);
+    if(sortMode==='recent-used')return new Date(b.lastUsed||0)-new Date(a.lastUsed||0);
+    return new Date(b.createdAt||0)-new Date(a.createdAt||0);
+  });
+  $('drillCount').textContent=`(${drillLibrary.length})`;
+  list.innerHTML=items.length?items.map(d=>{
+    const tags=tagList(d);
+    const tagsHtml=tags.length?`<div class="drill-tags">${tags.map(t=>`<span class="drill-tag">${esc(t)}</span>`).join('')}</div>`:'';
+    const thumb=d.imageData?`<img alt="" class="drill-thumb" src="${d.imageData}">`:'';
+    const watch=d.mediaUrl?`<a class="drill-watch" href="${esc(d.mediaUrl)}" rel="noopener" target="_blank">▶ Watch</a>`:'';
+    return `<article class="drill-card${d.favorite?' is-favorite':''}"><button aria-pressed="${d.favorite?'true':'false'}" class="drill-favorite" data-id="${d.id}" title="${d.favorite?'Remove favorite':'Mark favorite'}" type="button">${d.favorite?'★':'☆'}</button><div class="drill-card-body">${thumb}<div class="drill-card-main"><div class="drill-card-head"><div><div class="drill-title">${esc(d.name)}</div><div class="drill-meta">${esc(categoryInfo(d.category).label)} · ${d.minutes} min</div></div><div class="drill-meta">Used ${d.timesUsed||0}×</div></div>${tagsHtml}${d.details?`<div class="drill-details">${esc(d.details)}</div>`:''}${watch}<div class="drill-actions"><button class="primary drill-add" data-id="${d.id}" type="button">Add to Practice</button><button class="danger drill-delete" data-id="${d.id}" type="button">Delete</button></div></div></div></article>`;
+  }).join(''):'<div class="empty-queue">No drills match.</div>';
+  document.querySelectorAll('.drill-add').forEach(b=>b.onclick=()=>addDrillToPractice(b.dataset.id));
+  document.querySelectorAll('.drill-delete').forEach(b=>b.onclick=()=>{drillLibrary=drillLibrary.filter(d=>d.id!==b.dataset.id);saveCoachKnowledge()});
+  document.querySelectorAll('.drill-favorite').forEach(b=>b.onclick=()=>toggleDrillFavorite(b.dataset.id));
+}
 function addQueueItem(data){practiceQueue.unshift({id:crypto.randomUUID(),createdAt:new Date().toISOString(),priority:'medium',category:'other',...data});saveCoachKnowledge()}
 function addMeetNote(){const title=$('meetNoteTitle').value.trim(),addedBy=$('meetNoteAddedBy').value.trim();if(!title||!addedBy)return alert('Enter both what to work on and who added it.');addQueueItem({source:'coach',title,addedBy,category:'other',details:''});$('meetNoteTitle').value='';$('meetNoteAddedBy').value='';$('meetNoteTitle').focus()}
 function addQueueToPractice(id){const q=practiceQueue.find(x=>x.id===id);if(!q)return;state.blocks.push({id:crypto.randomUUID(),name:q.title,minutes:10,details:[q.addedBy?`Added by: ${q.addedBy}`:'',q.details].filter(Boolean).join('\n'),category:categoryInfo(q.category).id,coachNotes:'',completionStatus:'not_completed',actualMinutes:10,libraryDrillId:''});save();render();alert('Added to the current practice.')}
 function saveQueueAsDrill(id){const q=practiceQueue.find(x=>x.id===id);if(!q)return;drillLibrary.unshift({id:crypto.randomUUID(),name:q.title,category:categoryInfo(q.category).id,minutes:10,details:q.details||'',tags:q.athlete||'',timesUsed:0,createdAt:new Date().toISOString()});saveCoachKnowledge()}
 function saveBlockToDrillLibrary(index){const b=state.blocks[index];if(!b)return;const existing=drillLibrary.find(d=>d.name.toLowerCase()===b.name.toLowerCase());if(existing&&!confirm('A drill with this name exists. Save another copy?'))return;drillLibrary.unshift({id:crypto.randomUUID(),name:b.name,category:b.category,minutes:b.minutes,details:b.details||'',tags:'',timesUsed:0,createdAt:new Date().toISOString()});saveCoachKnowledge();alert('Saved to Drill Library.')}
 function addDrillToPractice(id){const d=drillLibrary.find(x=>x.id===id);if(!d)return;state.blocks.push({id:crypto.randomUUID(),name:d.name,minutes:d.minutes,details:d.details||'',category:d.category,coachNotes:'',completionStatus:'not_completed',actualMinutes:d.minutes,libraryDrillId:d.id});d.timesUsed=(d.timesUsed||0)+1;d.lastUsed=new Date().toISOString();saveCoachKnowledge();save();render();alert('Drill added to the current practice.')}
-function saveNewDrill(){const name=$('newDrillName').value.trim();if(!name)return alert('Enter a drill name.');drillLibrary.unshift({id:crypto.randomUUID(),name,category:$('newDrillCategory').value,minutes:Math.max(1,Number($('newDrillMinutes').value)||10),details:$('newDrillDetails').value.trim(),tags:$('newDrillTags').value.trim(),timesUsed:0,createdAt:new Date().toISOString()});['newDrillName','newDrillDetails','newDrillTags'].forEach(id=>$(id).value='');saveCoachKnowledge()}
+let pendingNewDrillImage='';
+function compressImageFile(file){
+  return new Promise(resolve=>{
+    if(!file)return resolve('');
+    const reader=new FileReader();
+    reader.onload=()=>{
+      const img=new Image();
+      img.onload=()=>{
+        const maxW=320,maxH=240;
+        let w=img.width,h=img.height;
+        const scale=Math.min(1,maxW/w,maxH/h);
+        w=Math.max(1,Math.round(w*scale));h=Math.max(1,Math.round(h*scale));
+        const canvas=document.createElement('canvas');canvas.width=w;canvas.height=h;
+        const ctx=canvas.getContext('2d');ctx.drawImage(img,0,0,w,h);
+        try{resolve(canvas.toDataURL('image/jpeg',0.72))}catch{resolve('')}
+      };
+      img.onerror=()=>resolve('');
+      img.src=reader.result;
+    };
+    reader.onerror=()=>resolve('');
+    reader.readAsDataURL(file);
+  });
+}
+function resetNewDrillImagePicker(){
+  pendingNewDrillImage='';
+  if($('newDrillImage'))$('newDrillImage').value='';
+  if($('newDrillImagePreview')){$('newDrillImagePreview').hidden=true;$('newDrillImagePreview').src=''}
+  if($('clearNewDrillImageBtn'))$('clearNewDrillImageBtn').hidden=true;
+}
+function wireDrillImageInput(){
+  const input=$('newDrillImage');if(!input)return;
+  input.onchange=async()=>{
+    const file=input.files&&input.files[0];
+    if(!file)return;
+    pendingNewDrillImage=await compressImageFile(file);
+    if(pendingNewDrillImage){
+      $('newDrillImagePreview').src=pendingNewDrillImage;$('newDrillImagePreview').hidden=false;
+      $('clearNewDrillImageBtn').hidden=false;
+    }else{
+      alert("Could not read that image. Try a different file.");
+    }
+  };
+  $('clearNewDrillImageBtn').onclick=resetNewDrillImagePicker;
+}
+function saveNewDrill(){const name=$('newDrillName').value.trim();if(!name)return alert('Enter a drill name.');drillLibrary.unshift({id:crypto.randomUUID(),name,category:$('newDrillCategory').value,minutes:Math.max(1,Number($('newDrillMinutes').value)||10),details:$('newDrillDetails').value.trim(),tags:$('newDrillTags').value.trim(),mediaUrl:$('newDrillVideoUrl')?.value.trim()||'',imageData:pendingNewDrillImage||'',favorite:false,timesUsed:0,createdAt:new Date().toISOString()});['newDrillName','newDrillDetails','newDrillTags','newDrillVideoUrl'].forEach(id=>{if($(id))$(id).value=''});resetNewDrillImagePicker();saveCoachKnowledge()}
 function openReflection(){if(!state.blocks.length)return alert('Add at least one practice block before archiving.');pendingArchiveSnapshot=currentPracticeSnapshot();const skipped=state.blocks;$('reflectionSkippedList').innerHTML=skipped.length?skipped.map(b=>`<label class="didnt-get-to-item"><input type="checkbox" data-block-id="${b.id}"><span>${esc(b.name)} (${esc(categoryInfo(b.category).label)})</span></label>`).join(''):'<div class="queue-count">Every block was completed or partially completed.</div>';$('reflectionModalBackdrop').hidden=false}
 function closeReflection(){$('reflectionModalBackdrop').hidden=true;pendingArchiveSnapshot=null}
 function finishArchiveWithReflection(){if(!pendingArchiveSnapshot)return;const r={energy:$('reflectionEnergy').value,focus:$('reflectionFocus').value,effort:$('reflectionEffort').value,execution:$('reflectionExecution').value,overall:$('reflectionOverall').value,wentWell:$('reflectionWentWell').value.trim(),didntGoWell:$('reflectionDidnt').value.trim(),changeNext:$('reflectionChange').value.trim()};pendingArchiveSnapshot.reflection=r;const checked=[...document.querySelectorAll('#reflectionSkippedList input:checked')].map(x=>x.dataset.blockId);pendingArchiveSnapshot.didntGetTo=(pendingArchiveSnapshot.blocks||[]).filter(b=>checked.includes(b.id)).map(b=>({name:b.name,category:b.category,details:b.details||''}));pendingArchiveSnapshot.didntGetTo.forEach(b=>{const duplicate=practiceQueue.some(q=>q.source==='didnt_get_to'&&q.title===b.name&&q.practiceDate===pendingArchiveSnapshot.date);if(!duplicate)addQueueItem({source:'didnt_get_to',title:b.name,category:b.category,details:b.details,practiceDate:pendingArchiveSnapshot.date,priority:'medium'})});if(r.changeNext)addQueueItem({source:'reflection',title:'Practice reflection follow-up',category:'other',details:r.changeNext,practiceDate:pendingArchiveSnapshot.date,priority:'medium'});const snap=pendingArchiveSnapshot;const sameDateIndex=snap.date?state.archives.findIndex(a=>a.date===snap.date):-1;if(sameDateIndex>=0&&confirm('A practice is already archived for this date. Replace it?')){snap.id=state.archives[sameDateIndex].id;state.archives[sameDateIndex]=snap}else state.archives.unshift(snap);localStorage.setItem('wpp-practice-library',JSON.stringify(state.archives));closeReflection();renderLibrary();alert('Practice archived with reflection and Didn’t Get To items.')}
 const originalShowAppPage=showAppPage;showAppPage=function(page){const special=page==='queue'||page==='drills';if(special){$('builderPage').classList.add('hidden-page');$('libraryPage').classList.remove('active');$('teamBoardPage').classList.remove('active');$('practiceDataPage')?.classList.remove('active');$('practiceQueuePage').classList.toggle('active',page==='queue');$('drillLibraryPage').classList.toggle('active',page==='drills');['navBuilder','navCoach','navTeam','navLibrary','navData','navQueue','navDrills'].forEach(id=>$(id)?.classList.remove('active'));$(page==='queue'?'navQueue':'navDrills').classList.add('active');if(page==='queue')renderQueue();else renderDrillLibrary();window.scrollTo({top:0,behavior:'smooth'});return}$('practiceQueuePage')?.classList.remove('active');$('drillLibraryPage')?.classList.remove('active');$('navQueue')?.classList.remove('active');$('navDrills')?.classList.remove('active');$('navData')?.classList.remove('active');originalShowAppPage(page)};
-$('dataTabDate').onclick=()=>setDataView('date');$('dataTabActive').onclick=()=>setDataView('active');$('dataArchiveSelect').onchange=renderDatePracticeData;$('dataRefreshBtn').onclick=renderPracticeData;loadCoachKnowledge();$('navQueue').onclick=()=>showAppPage('queue');$('navDrills').onclick=()=>showAppPage('drills');$('addMeetNoteBtn').onclick=addMeetNote;$('queueSearch').oninput=renderQueue;$('drillSearch').oninput=renderDrillLibrary;$('saveNewDrillBtn').onclick=saveNewDrill;el.blockSource.onchange=()=>{updateBlockSourceUI();if(el.blockSource.value==='library'&&el.drillPicker.value)applySelectedDrill()};el.drillPicker.onchange=applySelectedDrill;$('cancelReflectionBtn').onclick=closeReflection;$('confirmArchiveBtn').onclick=finishArchiveWithReflection;
+$('dataTabDate').onclick=()=>setDataView('date');$('dataTabActive').onclick=()=>setDataView('active');$('dataArchiveSelect').onchange=renderDatePracticeData;$('dataRefreshBtn').onclick=renderPracticeData;loadCoachKnowledge();$('navQueue').onclick=()=>showAppPage('queue');$('navDrills').onclick=()=>showAppPage('drills');$('addMeetNoteBtn').onclick=addMeetNote;$('queueSearch').oninput=renderQueue;$('drillSearch').oninput=renderDrillLibrary;$('saveNewDrillBtn').onclick=saveNewDrill;if($('drillFilterCategory'))$('drillFilterCategory').onchange=renderDrillLibrary;if($('drillFilterTag'))$('drillFilterTag').onchange=renderDrillLibrary;if($('drillSort'))$('drillSort').onchange=renderDrillLibrary;if($('drillFilterFavorites'))$('drillFilterFavorites').onclick=()=>{const b=$('drillFilterFavorites');b.classList.toggle('active');b.setAttribute('aria-pressed',b.classList.contains('active')?'true':'false');renderDrillLibrary()};wireDrillImageInput();el.blockSource.onchange=()=>{updateBlockSourceUI();if(el.blockSource.value==='library'&&el.drillPicker.value)applySelectedDrill()};el.drillPicker.onchange=applySelectedDrill;$('cancelReflectionBtn').onclick=closeReflection;$('confirmArchiveBtn').onclick=finishArchiveWithReflection;
 
 
 
