@@ -495,12 +495,3 @@ body.dash-resizing .dash-resize-handle::after{background:var(--maroon)}
 .pie-legend-item span{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .pie-legend-item strong{font-weight:850;color:#1f2937}
 @media(max-width:420px){.breakdown-pie-wrap{justify-content:center}}
-
-/* Editable team branding */
-#openBrandSettingsBtn{flex:0 0 auto;align-self:center}
-.program-goal-display{margin:2px 0 0;font-size:.78rem;font-weight:700;opacity:.9;max-width:60ch}
-.brand-settings-grid{display:grid;gap:12px}
-.brand-settings-grid textarea{min-height:80px;resize:vertical}
-.logo-preview-row{display:flex;align-items:center;gap:10px;margin-top:8px}
-#brandLogoPreview{width:56px;height:56px;object-fit:contain;background:#f8fafc;border:1px solid var(--line);border-radius:9px;padding:4px}
-@media(max-width:600px){.header{justify-content:flex-start}#openBrandSettingsBtn{margin-left:auto}}
