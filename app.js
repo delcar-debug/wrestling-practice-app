@@ -637,20 +637,21 @@ function buildPerPracticeMinutesSvg(){
     ariaLabel:'Practice minutes per practice'
   });
 }
-function buildCategoryMixPieHtml(){
+function buildTechniqueMixPieHtml(){
   const archives=datedArchivesSorted();
   if(!archives.length)return '<div class="empty-library">Archive practices to see trends.</div>';
-  const totals=Object.fromEntries(CATEGORIES.map(c=>[c.id,0]));
-  archives.forEach(a=>{const c=archiveCategoryTotals(a);CATEGORIES.forEach(cat=>totals[cat.id]+=Number(c[cat.id]||0))});
+  const techCats=CATEGORIES.filter(c=>TECHNIQUE_IDS.includes(c.id));
+  const totals=Object.fromEntries(techCats.map(c=>[c.id,0]));
+  archives.forEach(a=>{const c=archiveCategoryTotals(a);techCats.forEach(cat=>totals[cat.id]+=Number(c[cat.id]||0))});
   const grand=Object.values(totals).reduce((a,b)=>a+b,0);
-  const segments=CATEGORIES.filter(c=>totals[c.id]>0).map(c=>({label:c.label,mins:totals[c.id],pct:grand?Math.round(totals[c.id]/grand*100):0,color:pieColorFor(c.id)}));
-  return breakdownPieHtml(segments,'No category data yet.');
+  const segments=techCats.filter(c=>totals[c.id]>0).map(c=>({label:c.label,mins:totals[c.id],pct:grand?Math.round(totals[c.id]/grand*100):0,color:pieColorFor(c.id)}));
+  return breakdownPieHtml(segments,'No technique data yet.');
 }
 function renderTrendCharts(){
   const weeks=buildSeasonTrendWeeks();
   if($('dataTrendMinutesChart'))$('dataTrendMinutesChart').innerHTML=buildMinutesTrendSvg(weeks);
   if($('dataTrendPerPracticeChart'))$('dataTrendPerPracticeChart').innerHTML=buildPerPracticeMinutesSvg();
-  if($('dataTrendMixChart'))$('dataTrendMixChart').innerHTML=buildCategoryMixPieHtml();
+  if($('dataTrendMixChart'))$('dataTrendMixChart').innerHTML=buildTechniqueMixPieHtml();
   if($('dataTrendRatingChart'))$('dataTrendRatingChart').innerHTML=buildRatingHeatmapHtml();
 }
 function pctOf(part,total){return total?Math.round((part/total)*100):0}
