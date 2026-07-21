@@ -718,20 +718,12 @@
   const DEFAULT_TEXT = {
     eyebrow: 'Championship Standard',
     slogan1: 'For Her',
-    slogan2: 'Team State Champs',
-    activeLabel: 'Active Practice',
-    continueBtn: 'Continue Practice',
-    quickActionsHeader: 'Quick Actions',
-    recentHeader: 'Recent Practices'
+    slogan2: 'Team State Champs'
   };
   const TEXT_LABELS = {
     eyebrow: 'Eyebrow tag',
     slogan1: 'Slogan 1',
-    slogan2: 'Slogan 2',
-    activeLabel: '"Active Practice" label',
-    continueBtn: 'Continue button',
-    quickActionsHeader: 'Quick Actions header',
-    recentHeader: 'Recent Practices header'
+    slogan2: 'Slogan 2'
   };
   const DEFAULT_PRIMARY = '#741d2a';
   const DEFAULT_ACCENT = '#7a1f2b';
@@ -796,11 +788,6 @@
       const slogans = home.querySelectorAll('.home-slogans span');
       if (slogans[0]) slogans[0].textContent = t.slogan1;
       if (slogans[1]) slogans[1].textContent = t.slogan2;
-      setText('.home-today-label')(t.activeLabel);
-      const contBtn = q('homeContinueBtn'); if (contBtn) contBtn.textContent = t.continueBtn;
-      const panelHeaders = home.querySelectorAll('.home-panels h2');
-      if (panelHeaders[0]) panelHeaders[0].textContent = t.quickActionsHeader;
-      if (panelHeaders[1]) panelHeaders[1].textContent = t.recentHeader;
     }
 
     let current = load();
