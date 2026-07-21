@@ -726,7 +726,6 @@
     slogan2: 'Slogan 2'
   };
   const DEFAULT_PRIMARY = '#741d2a';
-  const DEFAULT_ACCENT = '#7a1f2b';
 
   function shade(hex, percent) {
     try {
@@ -748,7 +747,7 @@
     const DEFAULT_LOGO = document.querySelector('.brand img')?.src || '';
     const DEFAULT_NAME = document.querySelector('.brand h1')?.textContent?.trim() || "Holmen Women's Wrestling";
 
-    const defaults = () => ({ teamName: DEFAULT_NAME, logo: '', primary: DEFAULT_PRIMARY, accent: DEFAULT_ACCENT, text: { ...DEFAULT_TEXT } });
+    const defaults = () => ({ teamName: DEFAULT_NAME, logo: '', primary: DEFAULT_PRIMARY, text: { ...DEFAULT_TEXT } });
 
     function load() {
       try {
@@ -771,10 +770,9 @@
 
     function apply(settings) {
       const primary = settings.primary || DEFAULT_PRIMARY;
-      const accent = settings.accent || DEFAULT_ACCENT;
       document.documentElement.style.setProperty('--maroon', primary);
       document.documentElement.style.setProperty('--maroon2', shade(primary, -0.25));
-      document.documentElement.style.setProperty('--accent', accent);
+      document.documentElement.style.setProperty('--accent', shade(primary, 0.1));
 
       const name = settings.teamName || DEFAULT_NAME;
       document.querySelectorAll('.brand h1, .dash-brand-title, .team-board-title h2, .home-identity h1').forEach(el => { if (el) el.textContent = name; });
@@ -817,11 +815,8 @@
         <div class="logo-preview-row"><img alt="Logo preview" id="brandLogoPreview"><button class="secondary" id="brandLogoResetBtn" type="button">Reset to Default Logo</button></div>
       </section>
       <section class="brand-section">
-        <h3>Colors</h3>
-        <div class="brand-color-row">
-          <label class="field color-field">Primary color<input id="brandPrimaryColor" type="color"></label>
-          <label class="field color-field">Accent color<input id="brandAccentColor" type="color"></label>
-        </div>
+        <h3>Color</h3>
+        <label class="field color-field">Team color<input id="brandPrimaryColor" type="color"></label>
       </section>
       <section class="brand-section">
         <h3>Home Page Text</h3>
@@ -847,7 +842,6 @@
       if (q('brandTeamName')) q('brandTeamName').value = settings.teamName || '';
       if (q('brandLogoPreview')) q('brandLogoPreview').src = settings.logo || DEFAULT_LOGO;
       if (q('brandPrimaryColor')) q('brandPrimaryColor').value = settings.primary || DEFAULT_PRIMARY;
-      if (q('brandAccentColor')) q('brandAccentColor').value = settings.accent || DEFAULT_ACCENT;
       const t = { ...DEFAULT_TEXT, ...(settings.text || {}) };
       Object.keys(DEFAULT_TEXT).forEach(k => { const el = q('txt-' + k); if (el) el.value = t[k]; });
     }
@@ -859,7 +853,6 @@
         teamName: (q('brandTeamName')?.value || '').trim() || DEFAULT_NAME,
         logo: (draft && draft.logo) || '',
         primary: q('brandPrimaryColor')?.value || DEFAULT_PRIMARY,
-        accent: q('brandAccentColor')?.value || DEFAULT_ACCENT,
         text
       };
     }

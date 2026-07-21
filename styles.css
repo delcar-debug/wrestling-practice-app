@@ -147,7 +147,7 @@ body.detached-tv .team-board-item.current .team-board-details,
 .practice-inbox-form{display:grid;grid-template-columns:minmax(0,1fr) minmax(110px,.3fr) minmax(130px,.3fr) auto;gap:7px;margin-top:9px;align-items:end}.practice-inbox-form input{width:100%;border:1px solid #cbd1d8;border-radius:9px;padding:9px;background:#fff;color:#1f2937}
 .inbox-date-field{display:flex;flex-direction:column;gap:3px;font-size:.68rem;font-weight:850;text-transform:uppercase;letter-spacing:.02em;color:#667085}
 .inbox-date-field input{text-transform:none;font-weight:400;font-size:.86rem}
-.practice-inbox-list{display:grid;gap:7px;margin-top:9px}.practice-inbox-item{background:#f8f9fb;border:1px solid #d9dde3;border-radius:9px;padding:8px 9px}.practice-inbox-title{font-weight:800;overflow-wrap:anywhere}.practice-inbox-meta{font-size:.74rem;color:#667085;margin-top:2px}.practice-inbox-actions{display:flex;flex-wrap:wrap;gap:6px;margin-top:7px}.practice-inbox-actions button{padding:6px 8px!important;font-size:.74rem!important}.practice-inbox-empty{color:#667085;font-size:.84rem;padding:5px 0}
+.practice-inbox-list{display:grid;gap:7px;margin-top:9px}.practice-inbox-item{background:#f8f9fb;border:1px solid #d9dde3;border-radius:9px;padding:8px 9px}.practice-inbox-title{font-weight:800;overflow-wrap:anywhere}.practice-inbox-meta{font-size:.74rem;color:#667085;margin-top:2px}.practice-inbox-item.is-stale{background:#fff7ed;border-color:#f3c98b}.practice-inbox-stale-badge{display:inline-block;background:#fed7aa;color:#9a3412;font-size:.62rem;font-weight:850;text-transform:uppercase;letter-spacing:.02em;padding:2px 7px;border-radius:999px;margin-left:7px;vertical-align:middle}.practice-inbox-actions{display:flex;flex-wrap:wrap;gap:6px;margin-top:7px}.practice-inbox-actions button{padding:6px 8px!important;font-size:.74rem!important}.practice-inbox-empty{color:#667085;font-size:.84rem;padding:5px 0}
 #builderPracticeInbox{margin:18px 0 14px}.coach-inbox-panel{margin-top:12px}
 .coach-inbox-panel>summary.practice-inbox-head{cursor:pointer;list-style:none;user-select:none;margin:-12px -12px 0;padding:12px;border-radius:14px}
 .coach-inbox-panel>summary.practice-inbox-head::-webkit-details-marker{display:none}
@@ -505,7 +505,6 @@ body.dash-resizing .dash-resize-handle::after{background:var(--maroon)}
 .brand-section h3{margin:0 0 10px;font-size:.86rem;text-transform:uppercase;letter-spacing:.02em;color:var(--muted)}
 .brand-settings-modal .field{display:block;font-size:.74rem;font-weight:850;text-transform:uppercase;color:var(--muted);margin-bottom:10px}
 .brand-settings-modal .field input{margin-top:5px}
-.brand-color-row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
 .color-field input[type="color"]{height:42px;padding:3px;cursor:pointer}
 .logo-preview-row{display:flex;align-items:center;gap:10px;margin-top:4px}
 .logo-preview-row img{width:52px;height:52px;object-fit:contain;border-radius:8px;border:1px solid var(--line);background:#fff}
@@ -521,4 +520,4 @@ body.dash-resizing .dash-resize-handle::after{background:var(--maroon)}
 .template-row-actions button{padding:5px 10px;font-size:.74rem}
 .template-empty{font-size:.82rem;color:var(--muted);padding:6px 2px}
 .brand-modal-actions{display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap;margin-top:16px}
-@media(max-width:640px){.brand-text-grid{grid-template-columns:1fr}.brand-color-row{grid-template-columns:1fr}}
+@media(max-width:640px){.brand-text-grid{grid-template-columns:1fr}}
