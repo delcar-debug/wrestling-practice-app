@@ -706,3 +706,122 @@
   const start = () => wire();
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', start); else start();
 })();
+
+/* ===== Editable team branding: name, slogan, program goal, logo, primary color ===== */
+(() => {
+  const KEY = 'wpp-brand-settings';
+  const DEFAULT_LOGO = document.querySelector('.brand img')?.src || '';
+
+  function shadeColor(hex, percent) {
+    const clean = (hex || '').replace('#', '');
+    if (!/^[0-9a-fA-F]{6}$/.test(clean)) return hex;
+    const num = parseInt(clean, 16);
+    let r = (num >> 16) + Math.round(255 * percent);
+    let g = ((num >> 8) & 0x00ff) + Math.round(255 * percent);
+    let b = (num & 0x0000ff) + Math.round(255 * percent);
+    r = Math.max(0, Math.min(255, r));
+    g = Math.max(0, Math.min(255, g));
+    b = Math.max(0, Math.min(255, b));
+    return '#' + (0x1000000 + r * 0x10000 + g * 0x100 + b).toString(16).slice(1);
+  }
+
+  function loadSettings() {
+    try {
+      const saved = JSON.parse(localStorage.getItem(KEY) || '{}');
+      return saved && typeof saved === 'object' ? saved : {};
+    } catch { return {}; }
+  }
+  function saveSettings(data) { try { localStorage.setItem(KEY, JSON.stringify(data)); } catch {} }
+
+  function applySettings(data) {
+    if (data.teamName) {
+      document.querySelectorAll('.brand h1, .dash-brand-title, .team-board-title h2').forEach(el => { el.textContent = data.teamName; });
+    }
+    if (data.slogan != null) {
+      document.querySelectorAll('.brand .slogan, .dash-slogan, .team-slogan').forEach(el => { el.textContent = data.slogan; });
+    }
+    document.querySelectorAll('.brand img, .dash-brand img').forEach(img => { img.src = data.logo || DEFAULT_LOGO; });
+    if (data.primaryColor) {
+      document.documentElement.style.setProperty('--maroon', data.primaryColor);
+      document.documentElement.style.setProperty('--maroon2', shadeColor(data.primaryColor, -0.22));
+    }
+    const goalDisplay = document.getElementById('programGoalDisplay');
+    if (goalDisplay) {
+      const goal = (data.programGoal || '').trim();
+      goalDisplay.textContent = goal ? `Program Goal: ${goal}` : '';
+      goalDisplay.hidden = !goal;
+    }
+  }
+
+  function fillForm(data) {
+    const byId = id => document.getElementById(id);
+    if (byId('brandTeamName')) byId('brandTeamName').value = data.teamName || document.querySelector('.brand h1')?.textContent || '';
+    if (byId('brandSlogan')) byId('brandSlogan').value = data.slogan != null ? data.slogan : (document.querySelector('.brand .slogan')?.textContent || '');
+    if (byId('brandProgramGoal')) byId('brandProgramGoal').value = data.programGoal || '';
+    if (byId('brandPrimaryColor')) byId('brandPrimaryColor').value = data.primaryColor || '#7a1732';
+    if (byId('brandLogoPreview')) byId('brandLogoPreview').src = data.logo || DEFAULT_LOGO;
+  }
+
+  function wire() {
+    const openBtn = document.getElementById('openBrandSettingsBtn');
+    const backdrop = document.getElementById('brandSettingsBackdrop');
+    const cancelBtn = document.getElementById('cancelBrandSettingsBtn');
+    const saveBtn = document.getElementById('saveBrandSettingsBtn');
+    const fileInput = document.getElementById('brandLogoInput');
+    const resetLogoBtn = document.getElementById('brandLogoResetBtn');
+    const preview = document.getElementById('brandLogoPreview');
+    if (!openBtn || !backdrop || openBtn.dataset.wired === '1') return;
+    openBtn.dataset.wired = '1';
+
+    let pendingLogo = null;
+
+    const openModal = () => {
+      pendingLogo = null;
+      fillForm(loadSettings());
+      backdrop.classList.add('open');
+      backdrop.setAttribute('aria-hidden', 'false');
+    };
+    const closeModal = () => {
+      backdrop.classList.remove('open');
+      backdrop.setAttribute('aria-hidden', 'true');
+    };
+
+    openBtn.addEventListener('click', openModal);
+    cancelBtn?.addEventListener('click', closeModal);
+    backdrop.addEventListener('click', e => { if (e.target === backdrop) closeModal(); });
+
+    fileInput?.addEventListener('change', () => {
+      const file = fileInput.files && fileInput.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = () => {
+        pendingLogo = reader.result;
+        if (preview) preview.src = pendingLogo;
+      };
+      reader.readAsDataURL(file);
+    });
+
+    resetLogoBtn?.addEventListener('click', () => {
+      pendingLogo = '';
+      if (preview) preview.src = DEFAULT_LOGO;
+      if (fileInput) fileInput.value = '';
+    });
+
+    saveBtn?.addEventListener('click', () => {
+      const current = loadSettings();
+      const next = {
+        teamName: document.getElementById('brandTeamName')?.value.trim() || '',
+        slogan: document.getElementById('brandSlogan')?.value ?? '',
+        programGoal: document.getElementById('brandProgramGoal')?.value || '',
+        primaryColor: document.getElementById('brandPrimaryColor')?.value || '',
+        logo: pendingLogo !== null ? pendingLogo : (current.logo || '')
+      };
+      saveSettings(next);
+      applySettings(next);
+      closeModal();
+    });
+  }
+
+  const start = () => { wire(); applySettings(loadSettings()); };
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', start); else start();
+})();
