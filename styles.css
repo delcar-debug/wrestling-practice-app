@@ -144,9 +144,12 @@ body.detached-tv .team-board-item.current .team-board-details,
 #nextPracticeNotesBuilder,#nextPracticeNotesCoach,#builderPlanningInbox{display:none!important}
 .practice-inbox-panel{background:#fff;border:2px solid #7a1f2b;border-radius:14px;padding:12px;margin:12px 0;box-shadow:0 2px 8px rgba(31,41,55,.08)}
 .practice-inbox-panel h2{margin:0;color:#4b111a;font-size:1.05rem}.practice-inbox-head{display:flex;justify-content:space-between;align-items:center;gap:10px}.practice-inbox-count{font-size:.78rem;color:#667085}
-.practice-inbox-form{display:grid;grid-template-columns:minmax(0,1fr) minmax(120px,.35fr) auto;gap:7px;margin-top:9px}.practice-inbox-form input{width:100%;border:1px solid #cbd1d8;border-radius:9px;padding:9px;background:#fff;color:#1f2937}
+.practice-inbox-form{display:grid;grid-template-columns:minmax(0,1fr) minmax(110px,.3fr) minmax(130px,.3fr) auto;gap:7px;margin-top:9px;align-items:end}.practice-inbox-form input{width:100%;border:1px solid #cbd1d8;border-radius:9px;padding:9px;background:#fff;color:#1f2937}
+.inbox-date-field{display:flex;flex-direction:column;gap:3px;font-size:.68rem;font-weight:850;text-transform:uppercase;letter-spacing:.02em;color:#667085}
+.inbox-date-field input{text-transform:none;font-weight:400;font-size:.86rem}
 .practice-inbox-list{display:grid;gap:7px;margin-top:9px}.practice-inbox-item{background:#f8f9fb;border:1px solid #d9dde3;border-radius:9px;padding:8px 9px}.practice-inbox-title{font-weight:800;overflow-wrap:anywhere}.practice-inbox-meta{font-size:.74rem;color:#667085;margin-top:2px}.practice-inbox-actions{display:flex;flex-wrap:wrap;gap:6px;margin-top:7px}.practice-inbox-actions button{padding:6px 8px!important;font-size:.74rem!important}.practice-inbox-empty{color:#667085;font-size:.84rem;padding:5px 0}
-#builderPracticeInbox{margin:0 0 14px}.coach-inbox-panel{margin-top:12px}.coach-inbox-panel .practice-inbox-form{grid-template-columns:minmax(0,1fr) minmax(95px,.35fr) auto}
+#builderPracticeInbox{margin:0 0 14px}.coach-inbox-panel{margin-top:12px}.coach-inbox-panel .practice-inbox-form{grid-template-columns:minmax(0,1fr) minmax(90px,.3fr) minmax(115px,.3fr) auto}
+#builderPracticeInbox .practice-inbox-form{grid-template-columns:1fr}
 @media(max-width:700px){.practice-inbox-form,.coach-inbox-panel .practice-inbox-form{grid-template-columns:1fr}.practice-inbox-actions{display:grid;grid-template-columns:1fr 1fr}}
 
 
