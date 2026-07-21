@@ -148,8 +148,8 @@ body.detached-tv .team-board-item.current .team-board-details,
 .inbox-date-field{display:flex;flex-direction:column;gap:3px;font-size:.68rem;font-weight:850;text-transform:uppercase;letter-spacing:.02em;color:#667085}
 .inbox-date-field input{text-transform:none;font-weight:400;font-size:.86rem}
 .practice-inbox-list{display:grid;gap:7px;margin-top:9px}.practice-inbox-item{background:#f8f9fb;border:1px solid #d9dde3;border-radius:9px;padding:8px 9px}.practice-inbox-title{font-weight:800;overflow-wrap:anywhere}.practice-inbox-meta{font-size:.74rem;color:#667085;margin-top:2px}.practice-inbox-actions{display:flex;flex-wrap:wrap;gap:6px;margin-top:7px}.practice-inbox-actions button{padding:6px 8px!important;font-size:.74rem!important}.practice-inbox-empty{color:#667085;font-size:.84rem;padding:5px 0}
-#builderPracticeInbox{margin:0 0 14px}.coach-inbox-panel{margin-top:12px}.coach-inbox-panel .practice-inbox-form{grid-template-columns:minmax(0,1fr) minmax(90px,.3fr) minmax(115px,.3fr) auto}
-#builderPracticeInbox .practice-inbox-form{grid-template-columns:1fr}
+#builderPracticeInbox{margin:0 0 14px}.coach-inbox-panel{margin-top:12px}
+#builderPracticeInbox .practice-inbox-form,.coach-inbox-panel .practice-inbox-form{grid-template-columns:1fr}
 @media(max-width:700px){.practice-inbox-form,.coach-inbox-panel .practice-inbox-form{grid-template-columns:1fr}.practice-inbox-actions{display:grid;grid-template-columns:1fr 1fr}}
 
 
