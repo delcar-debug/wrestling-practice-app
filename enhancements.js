@@ -671,35 +671,24 @@
 
 /* ===== Practice Plan QR code in Coach Mode ===== */
 (() => {
-  function waitForLibrary(cb, attempts = 0) {
-    if (window.QRCode) return cb();
-    if (attempts > 25) {
-      const hint = document.getElementById('qrSummaryHint');
-      if (hint) hint.textContent = 'QR library failed to load.';
-      return;
-    }
-    setTimeout(() => waitForLibrary(cb, attempts + 1), 200);
-  }
   function renderQr() {
-    const canvas = document.getElementById('practiceQrCanvas');
+    const img = document.getElementById('practiceQrCanvas');
     const linkInput = document.getElementById('qrLinkInput');
     const hint = document.getElementById('qrSummaryHint');
-    if (!canvas) return;
+    if (!img) return;
     if (!(typeof state !== 'undefined' && state.blocks && state.blocks.length)) {
       if (hint) hint.textContent = 'Add practice blocks first';
       if (linkInput) linkInput.value = '';
-      const ctx = canvas.getContext('2d');
-      if (ctx) ctx.clearRect(0, 0, canvas.width, canvas.height);
+      img.removeAttribute('src');
       return;
     }
-    waitForLibrary(() => {
-      const url = typeof window.currentPracticeShareUrl === 'function' ? window.currentPracticeShareUrl() : '';
-      if (!url) { if (hint) hint.textContent = 'Could not build a share link.'; return; }
-      if (linkInput) linkInput.value = url;
-      window.QRCode.toCanvas(canvas, url, { width: 176, margin: 1, color: { dark: '#4b111a', light: '#ffffff' } }, err => {
-        if (hint) hint.textContent = err ? 'Could not generate QR code.' : 'Scan to open the practice plan';
-      });
-    });
+    const url = typeof window.currentPracticeShareUrl === 'function' ? window.currentPracticeShareUrl() : '';
+    if (!url) { if (hint) hint.textContent = 'Could not build a share link.'; return; }
+    if (linkInput) linkInput.value = url;
+    if (hint) hint.textContent = 'Loading QR code…';
+    img.onload = () => { if (hint) hint.textContent = 'Scan to open the practice plan'; };
+    img.onerror = () => { if (hint) hint.textContent = 'Could not generate QR code. Check your connection.'; };
+    img.src = 'https://api.qrserver.com/v1/create-qr-code/?size=176x176&margin=8&data=' + encodeURIComponent(url);
   }
   function wire() {
     const box = document.getElementById('qrBox');
