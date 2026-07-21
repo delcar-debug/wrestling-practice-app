@@ -666,3 +666,60 @@
     if (install() || attempts > 20) clearInterval(retry);
   }, 150);
 })();
+
+/* ===== Practice Plan QR code in Coach Mode ===== */
+(() => {
+  function waitForLibrary(cb, attempts = 0) {
+    if (window.QRCode) return cb();
+    if (attempts > 25) {
+      const hint = document.getElementById('qrSummaryHint');
+      if (hint) hint.textContent = 'QR library failed to load.';
+      return;
+    }
+    setTimeout(() => waitForLibrary(cb, attempts + 1), 200);
+  }
+  function renderQr() {
+    const canvas = document.getElementById('practiceQrCanvas');
+    const linkInput = document.getElementById('qrLinkInput');
+    const hint = document.getElementById('qrSummaryHint');
+    if (!canvas) return;
+    if (!(typeof state !== 'undefined' && state.blocks && state.blocks.length)) {
+      if (hint) hint.textContent = 'Add practice blocks first';
+      if (linkInput) linkInput.value = '';
+      const ctx = canvas.getContext('2d');
+      if (ctx) ctx.clearRect(0, 0, canvas.width, canvas.height);
+      return;
+    }
+    waitForLibrary(() => {
+      const url = typeof window.currentPracticeShareUrl === 'function' ? window.currentPracticeShareUrl() : '';
+      if (!url) { if (hint) hint.textContent = 'Could not build a share link.'; return; }
+      if (linkInput) linkInput.value = url;
+      window.QRCode.toCanvas(canvas, url, { width: 176, margin: 1, color: { dark: '#4b111a', light: '#ffffff' } }, err => {
+        if (hint) hint.textContent = err ? 'Could not generate QR code.' : 'Scan to open the practice plan';
+      });
+    });
+  }
+  function wire() {
+    const box = document.getElementById('qrBox');
+    if (!box || box.dataset.qrWired === '1') return;
+    box.dataset.qrWired = '1';
+    box.addEventListener('toggle', () => { if (box.open) renderQr(); });
+    const copyBtn = document.getElementById('qrCopyBtn');
+    if (copyBtn) copyBtn.addEventListener('click', async () => {
+      const input = document.getElementById('qrLinkInput');
+      if (!input || !input.value) return;
+      try {
+        await navigator.clipboard.writeText(input.value);
+        copyBtn.textContent = 'Copied!';
+        setTimeout(() => { copyBtn.textContent = 'Copy Link'; }, 1500);
+      } catch {
+        input.select();
+        document.execCommand('copy');
+        copyBtn.textContent = 'Copied!';
+        setTimeout(() => { copyBtn.textContent = 'Copy Link'; }, 1500);
+      }
+    });
+  }
+  const start = () => wire();
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', start); else start();
+})();
