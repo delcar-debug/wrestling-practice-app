@@ -676,17 +676,13 @@
     const linkInput = document.getElementById('qrLinkInput');
     const hint = document.getElementById('qrSummaryHint');
     if (!img) return;
-    if (!(typeof state !== 'undefined' && state.blocks && state.blocks.length)) {
-      if (hint) hint.textContent = 'Add practice blocks first';
-      if (linkInput) linkInput.value = '';
-      img.removeAttribute('src');
-      return;
-    }
-    const url = typeof window.currentPracticeShareUrl === 'function' ? window.currentPracticeShareUrl() : '';
-    if (!url) { if (hint) hint.textContent = 'Could not build a share link.'; return; }
+    const tvUrl = new URL(location.href);
+    tvUrl.hash = '';
+    tvUrl.searchParams.set('tv', 'team-board');
+    const url = tvUrl.toString();
     if (linkInput) linkInput.value = url;
     if (hint) hint.textContent = 'Loading QR code…';
-    img.onload = () => { if (hint) hint.textContent = 'Scan to open the practice plan'; };
+    img.onload = () => { if (hint) hint.textContent = 'Scan to open the TV view'; };
     img.onerror = () => { if (hint) hint.textContent = 'Could not generate QR code. Check your connection.'; };
     img.src = 'https://api.qrserver.com/v1/create-qr-code/?size=176x176&margin=8&data=' + encodeURIComponent(url);
   }
