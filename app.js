@@ -959,6 +959,13 @@ $('dataTabDate').onclick=()=>setDataView('date');$('dataTabActive').onclick=()=>
   };
   const makeShareUrl=()=>window.buildShareUrlForPayload(practicePayload());
   window.currentPracticeShareUrl=makeShareUrl;
+  window.buildTvShareUrlForPayload=payload=>{
+    const url=new URL(location.origin+location.pathname);
+    url.searchParams.set('tv','team-board');
+    url.hash='practice='+utf8ToB64Url(JSON.stringify(payload));
+    return url.toString();
+  };
+  window.currentPracticeTvUrl=()=>window.buildTvShareUrlForPayload(practicePayload());
   let shareContext='current',shareDateOverride='';
   const shareMessage=url=>{
     const rawDate=shareDateOverride||el.practiceDate?.value;

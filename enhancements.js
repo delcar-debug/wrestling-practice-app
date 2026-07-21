@@ -676,13 +676,11 @@
     const linkInput = document.getElementById('qrLinkInput');
     const hint = document.getElementById('qrSummaryHint');
     if (!img) return;
-    const tvUrl = new URL(location.href);
-    tvUrl.hash = '';
-    tvUrl.searchParams.set('tv', 'team-board');
-    const url = tvUrl.toString();
+    const url = typeof window.currentPracticeTvUrl === 'function' ? window.currentPracticeTvUrl() : '';
+    if (!url) { if (hint) hint.textContent = 'Could not build a link.'; return; }
     if (linkInput) linkInput.value = url;
     if (hint) hint.textContent = 'Loading QR code…';
-    img.onload = () => { if (hint) hint.textContent = 'Scan to open the TV view'; };
+    img.onload = () => { if (hint) hint.textContent = ''; };
     img.onerror = () => { if (hint) hint.textContent = 'Could not generate QR code. Check your connection.'; };
     img.src = 'https://api.qrserver.com/v1/create-qr-code/?size=176x176&margin=8&data=' + encodeURIComponent(url);
   }

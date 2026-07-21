@@ -221,10 +221,11 @@ body.detached-tv .team-board-item.current .team-board-details,
 #practiceTypeHintBuilder{margin:14px 0 18px}
 
 /* Practice rating buttons */
-.rating-row{background:#fff;border:1px solid #d9dee6;border-radius:10px;padding:10px;display:flex;align-items:center;gap:8px;flex-wrap:wrap;flex:0 0 auto}
-.rating-label{font-size:.72rem;font-weight:850;text-transform:uppercase;color:#6b7280}
-.rating-buttons{display:flex;gap:6px;flex-wrap:wrap}
+.rating-row{background:#fff;border:1px solid #d9dee6;border-radius:9px;padding:6px 9px;display:flex;align-items:center;gap:6px;flex-wrap:wrap;flex:0 0 auto}
+.rating-label{font-size:.66rem;font-weight:850;text-transform:uppercase;color:#6b7280}
+.rating-buttons{display:flex;gap:4px;flex-wrap:wrap}
 .rating-btn{padding:6px 12px;font-size:.78rem;font-weight:850;border-radius:999px;border:2px solid transparent;background:#eef0f3;color:#374151}
+#practiceRatingRow .rating-btn{padding:3px 9px;font-size:.68rem}
 .rating-btn.rating-great{color:#16a34a}.rating-btn.rating-great.active{background:#16a34a;color:#fff;border-color:#16a34a}
 .rating-btn.rating-good{color:#2563eb}.rating-btn.rating-good.active{background:#2563eb;color:#fff;border-color:#2563eb}
 .rating-btn.rating-okay{color:#d97706}.rating-btn.rating-okay.active{background:#d97706;color:#fff;border-color:#d97706}
