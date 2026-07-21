@@ -712,19 +712,6 @@
   const KEY = 'wpp-brand-settings';
   const DEFAULT_LOGO = document.querySelector('.brand img')?.src || '';
 
-  function shadeColor(hex, percent) {
-    const clean = (hex || '').replace('#', '');
-    if (!/^[0-9a-fA-F]{6}$/.test(clean)) return hex;
-    const num = parseInt(clean, 16);
-    let r = (num >> 16) + Math.round(255 * percent);
-    let g = ((num >> 8) & 0x00ff) + Math.round(255 * percent);
-    let b = (num & 0x0000ff) + Math.round(255 * percent);
-    r = Math.max(0, Math.min(255, r));
-    g = Math.max(0, Math.min(255, g));
-    b = Math.max(0, Math.min(255, b));
-    return '#' + (0x1000000 + r * 0x10000 + g * 0x100 + b).toString(16).slice(1);
-  }
-
   function loadSettings() {
     try {
       const saved = JSON.parse(localStorage.getItem(KEY) || '{}');
@@ -741,10 +728,8 @@
       document.querySelectorAll('.brand .slogan, .dash-slogan, .team-slogan').forEach(el => { el.textContent = data.slogan; });
     }
     document.querySelectorAll('.brand img, .dash-brand img').forEach(img => { img.src = data.logo || DEFAULT_LOGO; });
-    if (data.primaryColor) {
-      document.documentElement.style.setProperty('--maroon', data.primaryColor);
-      document.documentElement.style.setProperty('--maroon2', shadeColor(data.primaryColor, -0.22));
-    }
+    document.documentElement.style.removeProperty('--maroon');
+    document.documentElement.style.removeProperty('--maroon2');
     const goalDisplay = document.getElementById('programGoalDisplay');
     if (goalDisplay) {
       const goal = (data.programGoal || '').trim();
@@ -758,7 +743,6 @@
     if (byId('brandTeamName')) byId('brandTeamName').value = data.teamName || document.querySelector('.brand h1')?.textContent || '';
     if (byId('brandSlogan')) byId('brandSlogan').value = data.slogan != null ? data.slogan : (document.querySelector('.brand .slogan')?.textContent || '');
     if (byId('brandProgramGoal')) byId('brandProgramGoal').value = data.programGoal || '';
-    if (byId('brandPrimaryColor')) byId('brandPrimaryColor').value = data.primaryColor || '#7a1732';
     if (byId('brandLogoPreview')) byId('brandLogoPreview').src = data.logo || DEFAULT_LOGO;
   }
 
@@ -813,7 +797,6 @@
         teamName: document.getElementById('brandTeamName')?.value.trim() || '',
         slogan: document.getElementById('brandSlogan')?.value ?? '',
         programGoal: document.getElementById('brandProgramGoal')?.value || '',
-        primaryColor: document.getElementById('brandPrimaryColor')?.value || '',
         logo: pendingLogo !== null ? pendingLogo : (current.logo || '')
       };
       saveSettings(next);
