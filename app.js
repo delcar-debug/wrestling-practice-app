@@ -112,6 +112,7 @@ function ensurePracticeTicker(){
 function hideCoachMode(){
   el.timerPanel.classList.remove('active');
   saveLiveState();
+  showAppPage('builder');
 }
 function restoreLiveState(){
   try{
@@ -498,7 +499,134 @@ function renderActivePracticeData(){
   $('dataActiveDate').textContent=el.practiceDate?.value?formatPracticeDate(el.practiceDate.value):'No date';$('dataActivePlannedTotal').textContent=`${pt} min`;
   renderBreakdownPair(planned,'dataActivePlannedOverall','dataActivePlannedTechnique','Add blocks to the active practice.');
 }
-function renderPracticeData(){renderSeasonPracticeData();renderDatePracticeData();renderActivePracticeData()}
+const CATEGORY_CHART_COLORS={warmup:'#8a4b08',neutral:'#14558a',top:'#8f2431',bottom:'#705c00',live:'#5e34a3',lifting:'#17663a',conditioning:'#8a3f0a',mindset:'#333b46',game:'#17665c',logistics:'#536172',other:'#6c4c2c'};
+function archiveMinutesTotal(a){return Number(a.plannedMinutes??a.totalMinutes??(a.blocks||[]).reduce((s,b)=>s+(Number(b.minutes)||0),0))||0}
+function archiveCategoryTotals(a){return a.categoryTotals&&typeof a.categoryTotals==='object'?a.categoryTotals:blockTotals(a.blocks,false)}
+function weekBucketKey(dateStr){
+  const d=new Date(dateStr+'T12:00:00');
+  if(Number.isNaN(d.getTime()))return null;
+  const day=(d.getDay()+6)%7;
+  const monday=new Date(d);monday.setDate(d.getDate()-day);
+  return monday.toISOString().slice(0,10);
+}
+function weekLabelShort(key){const d=new Date(key+'T12:00:00');return Number.isNaN(d.getTime())?key:d.toLocaleDateString(undefined,{month:'short',day:'numeric'})}
+function datedArchivesSorted(){return [...(state.archives||[])].filter(a=>a.date||a.archivedAt).sort((a,b)=>new Date(a.date||a.archivedAt)-new Date(b.date||b.archivedAt))}
+function buildSeasonTrendWeeks(){
+  const archives=datedArchivesSorted();
+  const weeks=new Map();
+  archives.forEach(a=>{
+    const rawDate=a.date||(a.archivedAt||'').slice(0,10);
+    const key=weekBucketKey(rawDate)||rawDate;
+    if(!key)return;
+    if(!weeks.has(key))weeks.set(key,{key,totalMinutes:0,count:0,categoryTotals:Object.fromEntries(CATEGORIES.map(c=>[c.id,0]))});
+    const w=weeks.get(key);
+    w.totalMinutes+=archiveMinutesTotal(a);w.count+=1;
+    const cats=archiveCategoryTotals(a);
+    CATEGORIES.forEach(c=>w.categoryTotals[c.id]+=Number(cats[c.id]||0));
+  });
+  return [...weeks.values()].sort((a,b)=>new Date(a.key)-new Date(b.key));
+}
+function buildMinutesTrendSvg(weeks){
+  if(!weeks.length)return '<div class="empty-library">Archive practices to see trends.</div>';
+  const w=680,h=200,padL=38,padB=26,padT=10,padR=8;
+  const innerW=w-padL-padR,innerH=h-padT-padB;
+  const max=Math.max(1,...weeks.map(x=>x.totalMinutes));
+  const barW=innerW/weeks.length;
+  const bars=weeks.map((wk,i)=>{
+    const bh=Math.max(1,Math.round((wk.totalMinutes/max)*innerH));
+    const x=padL+i*barW+barW*0.15,bw=barW*0.7,y=padT+innerH-bh;
+    return `<rect x="${x.toFixed(1)}" y="${y.toFixed(1)}" width="${bw.toFixed(1)}" height="${bh}" rx="3" fill="var(--maroon)"><title>Week of ${weekLabelShort(wk.key)}: ${wk.totalMinutes} min across ${wk.count} practice${wk.count===1?'':'s'}</title></rect>`;
+  }).join('');
+  const ticks=[0,0.5,1].map(f=>{
+    const val=Math.round(max*f),y=padT+innerH-innerH*f;
+    return `<text x="${padL-6}" y="${(y+3).toFixed(1)}" text-anchor="end" class="chart-axis-label">${val}</text><line class="chart-gridline" x1="${padL}" x2="${w-padR}" y1="${y.toFixed(1)}" y2="${y.toFixed(1)}"/>`;
+  }).join('');
+  const labelStep=Math.max(1,Math.ceil(weeks.length/8));
+  const xLabels=weeks.map((wk,i)=>i%labelStep===0?`<text x="${(padL+i*barW+barW/2).toFixed(1)}" y="${h-8}" text-anchor="middle" class="chart-axis-label">${weekLabelShort(wk.key)}</text>`:'').join('');
+  return `<svg class="trend-chart" viewBox="0 0 ${w} ${h}" role="img" aria-label="Practice minutes by week">${ticks}${bars}${xLabels}</svg>`;
+}
+function buildCategoryMixSvg(weeks){
+  if(!weeks.length)return '<div class="empty-library">Archive practices to see trends.</div>';
+  const activeCats=CATEGORIES.filter(c=>weeks.some(wk=>wk.categoryTotals[c.id]>0));
+  if(!activeCats.length)return '<div class="empty-library">No category data yet.</div>';
+  const w=680,h=210,padL=8,padB=26,padT=8,padR=8;
+  const innerW=w-padL-padR,innerH=h-padT-padB;
+  const barW=innerW/weeks.length;
+  const bars=weeks.map((wk,i)=>{
+    const total=activeCats.reduce((s,c)=>s+wk.categoryTotals[c.id],0);
+    if(!total)return '';
+    let yCursor=padT+innerH;
+    return activeCats.map(c=>{
+      const val=wk.categoryTotals[c.id];if(!val)return '';
+      const segH=(val/total)*innerH;
+      yCursor-=segH;
+      const x=padL+i*barW+barW*0.12,bw=barW*0.76;
+      return `<rect x="${x.toFixed(1)}" y="${yCursor.toFixed(1)}" width="${bw.toFixed(1)}" height="${segH.toFixed(1)}" fill="${CATEGORY_CHART_COLORS[c.id]}"><title>${c.label}: ${val} min</title></rect>`;
+    }).join('');
+  }).join('');
+  const labelStep=Math.max(1,Math.ceil(weeks.length/8));
+  const xLabels=weeks.map((wk,i)=>i%labelStep===0?`<text x="${(padL+i*barW+barW/2).toFixed(1)}" y="${h-8}" text-anchor="middle" class="chart-axis-label">${weekLabelShort(wk.key)}</text>`:'').join('');
+  const legend=activeCats.map(c=>`<span class="chart-legend-item"><i style="background:${CATEGORY_CHART_COLORS[c.id]}"></i>${esc(c.label)}</span>`).join('');
+  return `<svg class="trend-chart" viewBox="0 0 ${w} ${h}" role="img" aria-label="Category mix by week">${bars}${xLabels}</svg><div class="chart-legend">${legend}</div>`;
+}
+function renderTrendCharts(){
+  const weeks=buildSeasonTrendWeeks();
+  if($('dataTrendMinutesChart'))$('dataTrendMinutesChart').innerHTML=buildMinutesTrendSvg(weeks);
+  if($('dataTrendMixChart'))$('dataTrendMixChart').innerHTML=buildCategoryMixSvg(weeks);
+}
+function pctOf(part,total){return total?Math.round((part/total)*100):0}
+function generateTrendInsights(){
+  const archives=datedArchivesSorted();
+  if(archives.length<2)return [{tone:'info',text:'Archive a few more practices and trends will start showing up here.'}];
+  const insights=[];
+  const mid=Math.floor(archives.length/2)||1;
+  const firstHalf=archives.slice(0,mid),secondHalf=archives.slice(mid).length?archives.slice(mid):firstHalf;
+  const avg=arr=>arr.length?arr.reduce((s,a)=>s+archiveMinutesTotal(a),0)/arr.length:0;
+  const avgFirst=avg(firstHalf),avgSecond=avg(secondHalf);
+  if(avgFirst>0){
+    const diffPct=Math.round(((avgSecond-avgFirst)/avgFirst)*100);
+    if(Math.abs(diffPct)>=15)insights.push({tone:diffPct>0?'up':'down',text:`Average practice length has ${diffPct>0?'grown':'shrunk'} about ${Math.abs(diffPct)}% this season (~${Math.round(avgFirst)} min → ~${Math.round(avgSecond)} min).`});
+  }
+  const third=Math.max(1,Math.floor(archives.length/3));
+  const early=archives.slice(0,third),late=archives.slice(-third);
+  const shareFor=arr=>{const totals=Object.fromEntries(CATEGORIES.map(c=>[c.id,0]));let grand=0;arr.forEach(a=>{const c=archiveCategoryTotals(a);CATEGORIES.forEach(cat=>{totals[cat.id]+=Number(c[cat.id]||0);grand+=Number(c[cat.id]||0)})});return {totals,grand}};
+  const earlyShare=shareFor(early),lateShare=shareFor(late);
+  CATEGORIES.map(c=>({label:c.label,diff:pctOf(lateShare.totals[c.id],lateShare.grand)-pctOf(earlyShare.totals[c.id],earlyShare.grand),eP:pctOf(earlyShare.totals[c.id],earlyShare.grand),lP:pctOf(lateShare.totals[c.id],lateShare.grand)}))
+    .filter(s=>Math.abs(s.diff)>=8).sort((a,b)=>Math.abs(b.diff)-Math.abs(a.diff)).slice(0,2)
+    .forEach(s=>insights.push({tone:s.diff>0?'up':'down',text:`${s.label} has gone from about ${s.eP}% of practice time early in the season to ${s.lP}% recently.`}));
+  const grandTotals=Object.fromEntries(CATEGORIES.map(c=>[c.id,0]));
+  archives.forEach(a=>{const c=archiveCategoryTotals(a);CATEGORIES.forEach(cat=>grandTotals[cat.id]+=Number(c[cat.id]||0))});
+  const grandTotal=Object.values(grandTotals).reduce((a,b)=>a+b,0);
+  const unused=CATEGORIES.filter(c=>!['other','logistics'].includes(c.id)&&grandTotals[c.id]===0);
+  if(unused.length&&unused.length<=3)insights.push({tone:'info',text:`No time logged yet in ${unused.map(c=>c.label).join(', ')} this season.`});
+  if(grandTotal>0){
+    const top=CATEGORIES.map(c=>({label:c.label,mins:grandTotals[c.id]})).sort((a,b)=>b.mins-a.mins)[0];
+    if(top.mins>0)insights.push({tone:'info',text:`${top.label} has taken up the most practice time this season — ${pctOf(top.mins,grandTotal)}% (${top.mins} min total).`});
+  }
+  const dated=archives.filter(a=>a.date);
+  if(dated.length>=2){
+    const gaps=[];
+    for(let i=1;i<dated.length;i++){
+      const days=Math.round((new Date(dated[i].date+'T12:00:00')-new Date(dated[i-1].date+'T12:00:00'))/86400000);
+      if(days>=10)gaps.push({days,after:dated[i-1].date});
+    }
+    if(gaps.length){
+      const worst=gaps.sort((a,b)=>b.days-a.days)[0];
+      insights.push({tone:'down',text:`There's a ${worst.days}-day gap in archived practices after ${new Date(worst.after+'T12:00:00').toLocaleDateString(undefined,{month:'short',day:'numeric'})} — archive practices regularly to keep this data accurate.`});
+    }
+  }
+  const notesCount=a=>(a.overallCoachNotes?.trim()?1:0)+(a.blocks||[]).filter(b=>b.coachNotes?.trim()).length;
+  const notesFirst=firstHalf.reduce((s,a)=>s+notesCount(a),0),notesSecond=secondHalf.reduce((s,a)=>s+notesCount(a),0);
+  if(notesFirst===0&&notesSecond>0)insights.push({tone:'up',text:'You have started leaving more coaching notes recently — great for building season history.'});
+  if(!insights.length)insights.push({tone:'info',text:'Practice time has stayed fairly consistent across categories this season — no major shifts detected yet.'});
+  return insights.slice(0,5);
+}
+function renderTrendInsights(){
+  const box=$('dataTrendInsights');if(!box)return;
+  const icon={up:'📈',down:'📉',info:'💡'};
+  box.innerHTML=generateTrendInsights().map(i=>`<div class="trend-insight trend-${i.tone}">${icon[i.tone]||'💡'} ${esc(i.text)}</div>`).join('');
+}
+function renderPracticeData(){renderSeasonPracticeData();renderDatePracticeData();renderActivePracticeData();renderTrendCharts();renderTrendInsights()}
 function setDataView(view){const date=view==='date';$('dataTabDate').classList.toggle('active',date);$('dataTabActive').classList.toggle('active',!date);$('dataDatePanel').classList.toggle('active',date);$('dataActivePanel').classList.toggle('active',!date);if(date)renderDatePracticeData();else renderActivePracticeData()}
 function showAppPage(page){$('practiceQueuePage')?.classList.remove('active');$('drillLibraryPage')?.classList.remove('active');const builder=page==='builder',library=page==='library',team=page==='team',data=page==='data';$('builderPage').classList.toggle('hidden-page',!builder);$('libraryPage').classList.toggle('active',library);$('teamBoardPage').classList.toggle('active',team);$('practiceDataPage').classList.toggle('active',data);$('navBuilder').classList.toggle('active',builder);$('navCoach').classList.toggle('active',page==='coach');$('navTeam').classList.toggle('active',team);$('navLibrary').classList.toggle('active',library);$('navData').classList.toggle('active',data);if(library)renderLibrary();if(data)renderPracticeData();if(team)renderTeamBoard();if(page==='coach')startPractice();window.scrollTo({top:0,behavior:'smooth'})}
 function renderTeamBoard(){if(!el.teamBoardList)return;const goal=(el.practiceGoal?.value||'').trim();el.teamBoardGoal.querySelector('span').textContent=goal||'No daily goal entered';const date=el.practiceDate?.value?new Date(el.practiceDate.value+'T12:00:00').toLocaleDateString(undefined,{weekday:'long',month:'long',day:'numeric',year:'numeric'}):'Date not set';el.teamBoardDate.textContent=date;let running=0;el.teamBoardList.innerHTML=state.blocks.length?state.blocks.map((b,i)=>{const start=clock(startMins()+running);running+=Number(b.minutes)||0;return `<article class="team-board-item ${i===state.currentIndex&&state.practiceActive?'current':''}"><div class="team-board-item-head"><div class="team-board-num">${i+1}</div><div><div class="team-board-item-name">${esc(b.name)}</div><div class="team-board-meta">${esc(categoryInfo(b.category).label)} · ${b.minutes} min</div></div><div class="team-board-time">${start}</div></div>${b.details?`<div class="team-board-details">${esc(b.details)}</div>`:''}</article>`}).join(''):'<div class="team-board-empty">Add practice blocks in Practice Builder to display the plan here.</div>'}

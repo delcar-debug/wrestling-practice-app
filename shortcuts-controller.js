@@ -26,8 +26,7 @@
     if(key==='w'||key==='W'){event.preventDefault();click('intervalTestBtn');return}
     if(key==='t'||key==='T'){event.preventDefault();intervalToggle();return}
     if(key==='m'||key==='M'){event.preventDefault();
-      // Existing mute path is retained if present.
-      if(typeof toggleSpotifyMute==='function')toggleSpotifyMute();
+      if(window.SpotifyController?.mute)window.SpotifyController.mute();
       else state.spotify.player?.getVolume().then(v=>state.spotify.player.setVolume(v>0?0:.7));
       return;
     }

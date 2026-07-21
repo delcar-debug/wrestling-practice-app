@@ -86,7 +86,7 @@
     ['builderPage','libraryPage','teamBoardPage','practiceDataPage','practiceQueuePage','drillLibraryPage'].forEach(id=>q(id)?.classList.remove('active'));
     q('builderPage')?.classList.add('hidden-page');q('whiteboardPage')?.classList.add('active');document.querySelectorAll('.page-nav button').forEach(x=>x.classList.toggle('active',x.id==='navWhiteboard'));window.scrollTo(0,0);
   }
-  const originalShow=showAppPage; showAppPage=function(page){q('whiteboardPage')?.classList.remove('active');q('builderPage')?.classList.remove('hidden-page');document.body.classList.remove('whiteboard-tv');if(page==='whiteboard')return showWhiteboard();return originalShow(page)};
+  const originalShow=showAppPage; showAppPage=function(page){q('whiteboardPage')?.classList.remove('active');q('builderPage')?.classList.remove('hidden-page');document.body.classList.remove('whiteboard-tv');if(page==='whiteboard')return showWhiteboard();q('navWhiteboard')?.classList.remove('active');return originalShow(page)};
   const originalData=renderPracticeData; renderPracticeData=function(){originalData();renderAdvancedAnalytics()};
   const originalDrills=renderDrillLibrary; renderDrillLibrary=function(){originalDrills();enhanceDrillCards()};
   installAnalyticsUI();installDropZone();installWhiteboard();renderAdvancedAnalytics();enhanceDrillCards();
@@ -97,6 +97,7 @@
   const hideWhiteboard = () => {
     const page = document.getElementById('whiteboardPage');
     if (page) page.classList.remove('active');
+    document.getElementById('navWhiteboard')?.classList.remove('active');
     if (!new URLSearchParams(location.search).has('whiteboard')) {
       document.body.classList.remove('whiteboard-tv');
     }
@@ -516,5 +517,108 @@
   });
 
   const start = () => installTrigger();
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', start); else start();
+})();
+
+/* ===== Resizable Coach Mode columns ===== */
+(() => {
+  const KEY = 'wpp-coach-columns';
+  const MINS = [250, 300, 340];
+  const DEFAULT_RATIOS = [0.72, 1, 1.1];
+
+  function loadRatios() {
+    try {
+      const v = JSON.parse(localStorage.getItem(KEY) || 'null');
+      if (Array.isArray(v) && v.length === 3 && v.every(n => typeof n === 'number' && n > 0)) return v;
+    } catch {}
+    return [...DEFAULT_RATIOS];
+  }
+  function saveRatios(r) { try { localStorage.setItem(KEY, JSON.stringify(r)); } catch {} }
+  function applyRatios(grid, r) {
+    grid.style.gap = '0';
+    grid.style.gridTemplateColumns = `minmax(${MINS[0]}px, ${r[0]}fr) 10px minmax(${MINS[1]}px, ${r[1]}fr) 10px minmax(${MINS[2]}px, ${r[2]}fr)`;
+  }
+
+  function makeHandle(index) {
+    const h = document.createElement('div');
+    h.className = 'dash-resize-handle';
+    h.dataset.index = String(index);
+    h.setAttribute('role', 'separator');
+    h.setAttribute('aria-orientation', 'vertical');
+    h.setAttribute('aria-label', 'Resize columns');
+    h.tabIndex = 0;
+    return h;
+  }
+
+  function wireHandle(h, grid, panels, getRatios, setRatios) {
+    let dragging = false, startX = 0, startWidths = null;
+    const pointX = e => (e.touches ? e.touches[0].clientX : e.clientX);
+    const onMove = e => {
+      if (!dragging) return;
+      const delta = pointX(e) - startX;
+      const i = Number(h.dataset.index);
+      const widths = [...startWidths];
+      widths[i] = Math.max(MINS[i], startWidths[i] + delta);
+      widths[i + 1] = Math.max(MINS[i + 1], startWidths[i + 1] - delta);
+      setRatios(widths);
+      applyRatios(grid, widths);
+      if (e.cancelable) e.preventDefault();
+    };
+    const onUp = () => {
+      if (!dragging) return;
+      dragging = false;
+      document.body.classList.remove('dash-resizing');
+      saveRatios(getRatios());
+      window.removeEventListener('mousemove', onMove);
+      window.removeEventListener('mouseup', onUp);
+      window.removeEventListener('touchmove', onMove);
+      window.removeEventListener('touchend', onUp);
+    };
+    const onDown = e => {
+      dragging = true;
+      document.body.classList.add('dash-resizing');
+      startX = pointX(e);
+      startWidths = panels.map(p => p.getBoundingClientRect().width);
+      window.addEventListener('mousemove', onMove);
+      window.addEventListener('mouseup', onUp);
+      window.addEventListener('touchmove', onMove, { passive: false });
+      window.addEventListener('touchend', onUp);
+      e.preventDefault();
+    };
+    h.addEventListener('mousedown', onDown);
+    h.addEventListener('touchstart', onDown, { passive: false });
+    h.addEventListener('keydown', e => {
+      if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') return;
+      e.preventDefault();
+      const i = Number(h.dataset.index);
+      const widths = panels.map(p => p.getBoundingClientRect().width);
+      const dir = e.key === 'ArrowLeft' ? -1 : 1;
+      const step = 20;
+      widths[i] = Math.max(MINS[i], widths[i] + dir * step);
+      widths[i + 1] = Math.max(MINS[i + 1], widths[i + 1] - dir * step);
+      setRatios(widths);
+      applyRatios(grid, widths);
+      saveRatios(widths);
+    });
+  }
+
+  function install() {
+    const grid = document.querySelector('.dash-grid');
+    if (!grid || grid.dataset.resizable === '1') return;
+    const panels = [...grid.querySelectorAll(':scope > .panel')];
+    if (panels.length !== 3) return;
+    grid.dataset.resizable = '1';
+    let ratios = loadRatios();
+    applyRatios(grid, ratios);
+    const h0 = makeHandle(0), h1 = makeHandle(1);
+    panels[0].after(h0);
+    panels[1].after(h1);
+    const getRatios = () => ratios;
+    const setRatios = r => { ratios = r; };
+    wireHandle(h0, grid, panels, getRatios, setRatios);
+    wireHandle(h1, grid, panels, getRatios, setRatios);
+  }
+
+  const start = () => install();
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', start); else start();
 })();

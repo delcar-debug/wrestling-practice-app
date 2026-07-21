@@ -193,7 +193,7 @@
       const button=byId('muteSpotifyBtn');
       if(button){
         button.setAttribute('aria-pressed',String(muted));
-        button.textContent=muted?'🔊 Unmute':'🔇 Mute';
+        button.textContent=muted?'🔇 Unmute':'🔊 Mute';
       }
       status(muted?'Spotify muted':'Spotify unmuted');
     }catch(error){console.error(error);status(error.message||'Could not change Spotify volume.')}
