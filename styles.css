@@ -523,7 +523,7 @@ body.dash-resizing .dash-resize-handle::after{background:var(--maroon)}
 @media(max-width:640px){.brand-text-grid{grid-template-columns:1fr}}
 
 /* ===== Attendance Tracker ===== */
-.home-attendance-panel{grid-column:1/-1}
+.home-attendance-panel{grid-column:1/-1;margin-bottom:18px}
 .attendance-panel-actions{margin-top:12px}
 .attendance-summary{display:flex;flex-direction:column;gap:8px}
 .attendance-stat-row{display:flex;align-items:center;justify-content:space-between;padding:8px 10px;background:#f8f9fb;border:1px solid var(--line);border-radius:9px;font-size:.85rem;font-weight:700}
