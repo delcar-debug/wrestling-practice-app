@@ -1285,9 +1285,29 @@
     }
     function closePanel() { panel.hidden = true; }
 
-    btn.addEventListener('click', () => { panel.hidden ? openPanel() : closePanel(); });
+    function toggle() { panel.hidden ? openPanel() : closePanel(); }
+    btn.addEventListener('click', toggle);
     document.getElementById('lastPracticeCloseBtn')?.addEventListener('click', closePanel);
     document.addEventListener('keydown', e => { if (e.key === 'Escape' && !panel.hidden) closePanel(); });
+
+    function isTypingTarget(target) {
+      if (!target) return false;
+      if (target.isContentEditable) return true;
+      const tag = target.tagName;
+      if (tag === 'TEXTAREA' || tag === 'SELECT') return true;
+      if (tag === 'INPUT') {
+        const type = (target.type || 'text').toLowerCase();
+        return !['button', 'checkbox', 'radio', 'submit', 'reset', 'range', 'color', 'file'].includes(type);
+      }
+      return false;
+    }
+    document.addEventListener('keydown', e => {
+      if (e.repeat || e.ctrlKey || e.metaKey || e.altKey) return;
+      if (e.key !== 'f' && e.key !== 'F') return;
+      if (isTypingTarget(e.target)) return;
+      e.preventDefault();
+      toggle();
+    });
 
     return true;
   }
