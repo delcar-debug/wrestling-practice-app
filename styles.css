@@ -562,7 +562,13 @@ body.dash-resizing .dash-resize-handle::after{background:var(--maroon)}
 
 /* ===== Last Practice quick view ===== */
 .last-practice-btn{margin:10px 0 0 10px}
-.last-practice-panel{position:fixed;top:90px;right:20px;z-index:9500;width:min(420px,92vw);max-height:75vh;overflow-y:auto;background:#fff;border:1px solid var(--line);border-radius:14px;box-shadow:0 20px 60px rgba(0,0,0,.28);padding:16px}
-.last-practice-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:10px}
-.last-practice-head h3{margin:0}
-@media(max-width:640px){.last-practice-panel{left:12px;right:12px;top:70px;width:auto}}
+.last-practice-panel{position:fixed;top:60px;right:20px;bottom:24px;z-index:9500;width:min(420px,92vw);max-height:calc(100vh - 84px);min-height:420px;overflow-y:auto;background:#fff;border:1px solid var(--line);border-radius:14px;box-shadow:0 20px 60px rgba(0,0,0,.28);padding:16px;display:flex;flex-direction:column}
+.last-practice-head{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:10px;flex:0 0 auto}
+.last-practice-head h3{margin:0;font-size:.95rem}
+.last-practice-title-wrap{flex:1;min-width:0;text-align:center}
+.last-practice-title-wrap h3{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.last-practice-position{display:block;font-size:.7rem;color:var(--muted);font-weight:700}
+.last-practice-nav{padding:6px 10px;font-size:.9rem;flex:0 0 auto}
+.last-practice-nav:disabled{opacity:.35;cursor:default}
+.last-practice-body{flex:1;min-height:0;overflow-y:auto}
+@media(max-width:640px){.last-practice-panel{left:12px;right:12px;top:70px;bottom:16px;width:auto}}

@@ -1242,13 +1242,11 @@
 
 /* ===== Last Practice quick view (Practice Builder) ===== */
 (() => {
-  function lastArchivedPractice() {
-    const sorted = [...(state.archives || [])].sort((a, b) => new Date(b.archivedAt || b.date || 0) - new Date(a.archivedAt || a.date || 0));
-    return sorted[0] || null;
+  function sortedArchives() {
+    return [...(state.archives || [])].sort((a, b) => new Date(b.archivedAt || b.date || 0) - new Date(a.archivedAt || a.date || 0));
   }
 
-  function lastArchivedPracticeHtml() {
-    const a = lastArchivedPractice();
+  function archivePracticeHtml(a) {
     if (!a) return '<div class="empty-library">No archived practices yet.</div>';
     const minutes = a.plannedMinutes ?? a.totalMinutes ?? (a.blocks || []).reduce((s, b) => s + (Number(b.minutes) || 0), 0);
     return `<div class="archive-title">${esc(archiveDateLabel(a))}</div>
@@ -1274,20 +1272,46 @@
     panel.id = 'lastPracticePanel';
     panel.className = 'last-practice-panel';
     panel.hidden = true;
-    panel.innerHTML = `<div class="last-practice-head"><h3>Last Practice</h3><button class="secondary" id="lastPracticeCloseBtn" type="button">Close</button></div>
+    panel.innerHTML = `<div class="last-practice-head">
+        <button class="secondary last-practice-nav" id="lastPracticeOlderBtn" title="Older practice" type="button">◀</button>
+        <div class="last-practice-title-wrap"><h3 id="lastPracticeTitle">Last Practice</h3><span class="last-practice-position" id="lastPracticePosition"></span></div>
+        <button class="secondary last-practice-nav" id="lastPracticeNewerBtn" title="Newer practice" type="button">▶</button>
+        <button class="secondary" id="lastPracticeCloseBtn" type="button">Close</button>
+      </div>
       <div class="last-practice-body" id="lastPracticeBody"></div>`;
     document.querySelector('.app')?.appendChild(panel);
 
-    function openPanel() {
-      const body = document.getElementById('lastPracticeBody');
-      if (body) body.innerHTML = lastArchivedPracticeHtml();
-      panel.hidden = false;
-    }
-    function closePanel() { panel.hidden = true; }
+    let index = 0;
 
+    function renderCurrent() {
+      const list = sortedArchives();
+      if (!list.length) {
+        document.getElementById('lastPracticeTitle').textContent = 'Last Practice';
+        document.getElementById('lastPracticePosition').textContent = '';
+        document.getElementById('lastPracticeBody').innerHTML = archivePracticeHtml(null);
+        document.getElementById('lastPracticeOlderBtn').disabled = true;
+        document.getElementById('lastPracticeNewerBtn').disabled = true;
+        return;
+      }
+      index = Math.max(0, Math.min(index, list.length - 1));
+      const a = list[index];
+      document.getElementById('lastPracticeTitle').textContent = archiveDateLabel(a);
+      document.getElementById('lastPracticePosition').textContent = `${index + 1} of ${list.length}`;
+      document.getElementById('lastPracticeBody').innerHTML = archivePracticeHtml(a);
+      document.getElementById('lastPracticeOlderBtn').disabled = index >= list.length - 1;
+      document.getElementById('lastPracticeNewerBtn').disabled = index <= 0;
+    }
+    function goOlder() { index++; renderCurrent(); }
+    function goNewer() { index--; renderCurrent(); }
+
+    function openPanel() { index = 0; renderCurrent(); panel.hidden = false; }
+    function closePanel() { panel.hidden = true; }
     function toggle() { panel.hidden ? openPanel() : closePanel(); }
+
     btn.addEventListener('click', toggle);
     document.getElementById('lastPracticeCloseBtn')?.addEventListener('click', closePanel);
+    document.getElementById('lastPracticeOlderBtn')?.addEventListener('click', goOlder);
+    document.getElementById('lastPracticeNewerBtn')?.addEventListener('click', goNewer);
     document.addEventListener('keydown', e => { if (e.key === 'Escape' && !panel.hidden) closePanel(); });
 
     function isTypingTarget(target) {
@@ -1302,11 +1326,12 @@
       return false;
     }
     document.addEventListener('keydown', e => {
-      if (e.repeat || e.ctrlKey || e.metaKey || e.altKey) return;
-      if (e.key !== 'f' && e.key !== 'F') return;
+      if (e.ctrlKey || e.metaKey || e.altKey) return;
       if (isTypingTarget(e.target)) return;
-      e.preventDefault();
-      toggle();
+      if (e.key === 'd' || e.key === 'D') { if (e.repeat) return; e.preventDefault(); toggle(); return; }
+      if (panel.hidden) return;
+      if (e.key === 's' || e.key === 'S') { e.preventDefault(); goOlder(); return; }
+      if (e.key === 'f' || e.key === 'F') { e.preventDefault(); goNewer(); return; }
     });
 
     return true;
