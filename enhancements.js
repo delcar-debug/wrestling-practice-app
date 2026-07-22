@@ -1239,3 +1239,64 @@
     if (start() || attendanceAttempts > 20) clearInterval(attendanceRetry);
   }, 150);
 })();
+
+/* ===== Last Practice quick view (Practice Builder) ===== */
+(() => {
+  function lastArchivedPractice() {
+    const sorted = [...(state.archives || [])].sort((a, b) => new Date(b.archivedAt || b.date || 0) - new Date(a.archivedAt || a.date || 0));
+    return sorted[0] || null;
+  }
+
+  function lastArchivedPracticeHtml() {
+    const a = lastArchivedPractice();
+    if (!a) return '<div class="empty-library">No archived practices yet.</div>';
+    const minutes = a.plannedMinutes ?? a.totalMinutes ?? (a.blocks || []).reduce((s, b) => s + (Number(b.minutes) || 0), 0);
+    return `<div class="archive-title">${esc(archiveDateLabel(a))}</div>
+      <div class="archive-meta">${minutes} min · ${(a.blocks || []).length} blocks</div>
+      <div class="archive-goal"><strong>Goal:</strong> ${esc(a.goal || 'No goal entered')}</div>
+      ${a.overallCoachNotes ? `<div class="archive-overall"><strong>Overall Practice Notes</strong><br>${esc(a.overallCoachNotes)}</div>` : ''}
+      ${(a.blocks || []).map((b, i) => `<div class="archive-block"><div class="archive-block-title">${i + 1}. ${esc(b.name)}</div><div class="archive-block-meta">${esc(categoryInfo(b.category).label)} · ${b.minutes} min</div>${b.details ? `<div class="archive-note"><strong>Plan:</strong> ${esc(b.details)}</div>` : ''}${b.coachNotes ? `<div class="archive-note"><strong>Practice notes:</strong> ${esc(b.coachNotes)}</div>` : ''}</div>`).join('')}`;
+  }
+
+  function start() {
+    const builder = document.getElementById('builderPage');
+    if (!builder || document.getElementById('viewLastPracticeBtn')) return false;
+
+    const btn = document.createElement('button');
+    btn.id = 'viewLastPracticeBtn';
+    btn.type = 'button';
+    btn.className = 'secondary last-practice-btn';
+    btn.textContent = 'View Last Practice';
+    const addBtn = document.getElementById('addBtn');
+    if (addBtn) addBtn.after(btn); else builder.prepend(btn);
+
+    const panel = document.createElement('div');
+    panel.id = 'lastPracticePanel';
+    panel.className = 'last-practice-panel';
+    panel.hidden = true;
+    panel.innerHTML = `<div class="last-practice-head"><h3>Last Practice</h3><button class="secondary" id="lastPracticeCloseBtn" type="button">Close</button></div>
+      <div class="last-practice-body" id="lastPracticeBody"></div>`;
+    document.querySelector('.app')?.appendChild(panel);
+
+    function openPanel() {
+      const body = document.getElementById('lastPracticeBody');
+      if (body) body.innerHTML = lastArchivedPracticeHtml();
+      panel.hidden = false;
+    }
+    function closePanel() { panel.hidden = true; }
+
+    btn.addEventListener('click', () => { panel.hidden ? openPanel() : closePanel(); });
+    document.getElementById('lastPracticeCloseBtn')?.addEventListener('click', closePanel);
+    document.addEventListener('keydown', e => { if (e.key === 'Escape' && !panel.hidden) closePanel(); });
+
+    return true;
+  }
+
+  const boot = () => start();
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot); else boot();
+  let lastPracticeAttempts = 0;
+  const lastPracticeRetry = setInterval(() => {
+    lastPracticeAttempts++;
+    if (start() || lastPracticeAttempts > 20) clearInterval(lastPracticeRetry);
+  }, 150);
+})();

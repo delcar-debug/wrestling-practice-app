@@ -559,3 +559,10 @@ body.dash-resizing .dash-resize-handle::after{background:var(--maroon)}
 .attendance-table th{text-align:left;font-size:.68rem;text-transform:uppercase;letter-spacing:.02em;color:var(--muted);padding:6px 8px;border-bottom:1px solid var(--line)}
 .attendance-table td{padding:7px 8px;border-bottom:1px solid #f0f1f4}
 .attendance-table tr:last-child td{border-bottom:0}
+
+/* ===== Last Practice quick view ===== */
+.last-practice-btn{margin:10px 0 0 10px}
+.last-practice-panel{position:fixed;top:90px;right:20px;z-index:9500;width:min(420px,92vw);max-height:75vh;overflow-y:auto;background:#fff;border:1px solid var(--line);border-radius:14px;box-shadow:0 20px 60px rgba(0,0,0,.28);padding:16px}
+.last-practice-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:10px}
+.last-practice-head h3{margin:0}
+@media(max-width:640px){.last-practice-panel{left:12px;right:12px;top:70px;width:auto}}
